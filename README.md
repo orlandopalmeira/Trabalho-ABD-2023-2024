@@ -7,11 +7,11 @@
 
 <div align="center">
 
-| Nome                           | Número |
-|--------------------------------|--------|
-| Miguel Silva Pinto             | A96106 |
-| Orlando José da Cunha Palmeira | A97755 |
-| Pedro Miguel Castilho Martins  | A97613 |
+| Nome                           | Número  |
+|--------------------------------|---------|
+| Miguel Silva Pinto             | PG54105 |
+| Orlando José da Cunha Palmeira | PG54123 |
+| Pedro Miguel Castilho Martins  | PG54146 |
 
 </div>
 
