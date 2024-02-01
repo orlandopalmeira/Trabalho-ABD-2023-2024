@@ -18,4 +18,4 @@
 ### Nota: X/20
 
 <h3><i>Keywords</i></h3>
-ABD, Administração de Bases de Dados, administracao de Bbses de dados, uminho, miei, mei, engenharia informatica
+ABD, Administração de Bases de Dados, administracao de bases de dados, uminho, miei, mei, engenharia informatica
