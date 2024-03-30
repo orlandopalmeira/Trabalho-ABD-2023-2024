@@ -9,6 +9,8 @@
 
 | Nome                           | Número  |
 |--------------------------------|---------|
+| Ana Rita Moreira Vaz           | PG53642 | 
+| José Eduardo da Cunha Rocha    | A97270  |
 | Miguel Silva Pinto             | PG54105 |
 | Orlando José da Cunha Palmeira | PG54123 |
 | Pedro Miguel Castilho Martins  | PG54146 |
