@@ -14,6 +14,6 @@ FROM (
         HAVING count(*) > 10
     )
     GROUP BY t.tagname, q.id
-)
+) subq
 GROUP BY tagname
 ORDER BY 2 DESC, 3 DESC, tagname;
