@@ -1,0 +1,56 @@
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1601336.40..1601336.65 rows=100 width=22) (actual time=6199.010..6199.155 rows=100 loops=1)
+   ->  Sort  (cost=1601336.40..1605068.14 rows=1492696 width=22) (actual time=5935.532..5935.671 rows=100 loops=1)
+         Sort Key: (((count(DISTINCT q.id) + count(DISTINCT a.id)) + count(DISTINCT c.id))) DESC
+         Sort Method: top-N heapsort  Memory: 32kB
+         ->  GroupAggregate  (cost=1361464.12..1544286.63 rows=1492696 width=22) (actual time=2338.554..5713.161 rows=1492696 loops=1)
+               Group Key: u.id
+               ->  Incremental Sort  (cost=1361464.12..1506969.23 rows=1492696 width=26) (actual time=2338.187..3768.147 rows=2146330 loops=1)
+                     Sort Key: u.id, q.id
+                     Presorted Key: u.id
+                     Full-sort Groups: 48501  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
+                     Pre-sorted Groups: 15787  Sort Method: quicksort  Average Memory: 1719kB  Peak Memory: 2089kB
+                     ->  Merge Left Join  (cost=1361464.06..1439797.91 rows=1492696 width=26) (actual time=2337.551..3325.936 rows=2146330 loops=1)
+                           Merge Cond: (u.id = c.userid)
+                           ->  Merge Left Join  (cost=901927.40..974410.36 rows=1492696 width=22) (actual time=1289.804..2004.328 rows=1508446 loops=1)
+                                 Merge Cond: (u.id = a.owneruserid)
+                                 ->  Merge Left Join  (cost=431364.27..499540.63 rows=1492696 width=18) (actual time=595.053..1140.390 rows=1496118 loops=1)
+                                       Merge Cond: (u.id = q.owneruserid)
+                                       ->  Index Scan using users_pkey on users u  (cost=0.43..63941.01 rows=1492696 width=14) (actual time=0.033..352.399 rows=1492696 loops=1)
+                                       ->  Sort  (cost=431363.83..431449.63 rows=34318 width=12) (actual time=594.979..601.457 rows=38757 loops=1)
+                                             Sort Key: q.owneruserid
+                                             Sort Method: quicksort  Memory: 3053kB
+                                             ->  Gather  (cost=1000.00..428778.54 rows=34318 width=12) (actual time=477.747..586.486 rows=38844 loops=1)
+                                                   Workers Planned: 2
+                                                   Workers Launched: 2
+                                                   ->  Parallel Seq Scan on questions q  (cost=0.00..424346.74 rows=14299 width=12) (actual time=527.150..571.726 rows=12948 loops=3)
+                                                         Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                                         Rows Removed by Filter: 987052
+                                 ->  Sort  (cost=470563.10..470660.08 rows=38789 width=12) (actual time=694.721..701.555 rows=40525 loops=1)
+                                       Sort Key: a.owneruserid
+                                       Sort Method: quicksort  Memory: 3045kB
+                                       ->  Gather  (cost=1000.00..467606.73 rows=38789 width=12) (actual time=678.213..687.363 rows=38635 loops=1)
+                                             Workers Planned: 2
+                                             Workers Launched: 2
+                                             ->  Parallel Seq Scan on answers a  (cost=0.00..462727.83 rows=16162 width=12) (actual time=663.324..672.338 rows=12878 loops=3)
+                                                   Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                                   Rows Removed by Filter: 1462889
+                           ->  Materialize  (cost=459535.63..460152.65 rows=123404 width=12) (actual time=1047.714..1093.835 rows=695968 loops=1)
+                                 ->  Sort  (cost=459535.63..459844.14 rows=123404 width=12) (actual time=1047.710..1059.253 rows=118355 loops=1)
+                                       Sort Key: c.userid
+                                       Sort Method: external merge  Disk: 3024kB
+                                       ->  Gather  (cost=1000.00..446989.45 rows=123404 width=12) (actual time=1001.593..1019.258 rows=118519 loops=1)
+                                             Workers Planned: 2
+                                             Workers Launched: 2
+                                             ->  Parallel Seq Scan on comments c  (cost=0.00..433649.05 rows=51418 width=12) (actual time=979.722..997.256 rows=39506 loops=3)
+                                                   Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                                   Rows Removed by Filter: 3708095
+ Planning Time: 5.031 ms
+ JIT:
+   Functions: 59
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 3.757 ms, Inlining 424.787 ms, Optimization 189.611 ms, Emission 141.343 ms, Total 759.497 ms
+ Execution Time: 6221.192 ms
+(52 rows)
+
