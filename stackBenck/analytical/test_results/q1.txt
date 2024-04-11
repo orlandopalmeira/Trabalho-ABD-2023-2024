@@ -1,56 +1,44 @@
-                                                                                      QUERY PLAN                                                                                      
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1601108.95..1601109.20 rows=100 width=22) (actual time=27072.613..27072.778 rows=100 loops=1)
-   ->  Sort  (cost=1601108.95..1604840.69 rows=1492696 width=22) (actual time=26691.701..26691.860 rows=100 loops=1)
+                                                                                            QUERY PLAN                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=276175.16..276175.41 rows=100 width=22) (actual time=3642.082..3642.095 rows=100 loops=1)
+   ->  Sort  (cost=276175.16..279906.90 rows=1492696 width=22) (actual time=3623.846..3623.853 rows=100 loops=1)
          Sort Key: (((count(DISTINCT questions.id) + count(DISTINCT answers.id)) + count(DISTINCT comments.id))) DESC
          Sort Method: top-N heapsort  Memory: 32kB
-         ->  GroupAggregate  (cost=1361253.89..1544059.19 rows=1492696 width=22) (actual time=23048.890..26489.496 rows=1492696 loops=1)
+         ->  GroupAggregate  (cost=36290.23..219125.40 rows=1492696 width=22) (actual time=170.174..3420.835 rows=1492696 loops=1)
                Group Key: u.id
-               ->  Incremental Sort  (cost=1361253.89..1506741.79 rows=1492696 width=26) (actual time=23048.484..24612.313 rows=2141516 loops=1)
+               ->  Incremental Sort  (cost=36290.23..181808.00 rows=1492696 width=26) (actual time=169.785..1574.678 rows=2140737 loops=1)
                      Sort Key: u.id, questions.id
                      Presorted Key: u.id
-                     Full-sort Groups: 48491  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
-                     Pre-sorted Groups: 15537  Sort Method: quicksort  Average Memory: 1715kB  Peak Memory: 2089kB
-                     ->  Merge Left Join  (cost=1361253.83..1439570.47 rows=1492696 width=26) (actual time=23047.858..24212.904 rows=2141516 loops=1)
+                     Full-sort Groups: 48489  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
+                     Pre-sorted Groups: 15556  Sort Method: quicksort  Average Memory: 1715kB  Peak Memory: 2089kB
+                     ->  Merge Left Join  (cost=36290.17..114636.68 rows=1492696 width=26) (actual time=169.147..1176.698 rows=2140737 loops=1)
                            Merge Cond: (u.id = comments.userid)
-                           ->  Merge Left Join  (cost=901853.86..974330.90 rows=1492696 width=22) (actual time=16524.320..17420.221 rows=1508340 loops=1)
+                           ->  Merge Left Join  (cost=16121.66..88609.56 rows=1492696 width=22) (actual time=89.676..805.511 rows=1508320 loops=1)
                                  Merge Cond: (u.id = answers.owneruserid)
-                                 ->  Merge Left Join  (cost=431325.94..499499.22 rows=1492696 width=18) (actual time=8248.601..8981.014 rows=1496089 loops=1)
+                                 ->  Merge Left Join  (cost=8208.93..76386.43 rows=1492696 width=18) (actual time=49.429..586.326 rows=1496081 loops=1)
                                        Merge Cond: (u.id = questions.owneruserid)
-                                       ->  Index Scan using users_pkey on users u  (cost=0.43..63941.01 rows=1492696 width=14) (actual time=8.174..554.001 rows=1492696 loops=1)
-                                       ->  Sort  (cost=431325.50..431410.77 rows=34108 width=12) (actual time=8240.373..8246.578 rows=38533 loops=1)
+                                       ->  Index Scan using users_pkey on users u  (cost=0.43..63941.01 rows=1492696 width=14) (actual time=0.024..318.431 rows=1492696 loops=1)
+                                       ->  Sort  (cost=8208.49..8294.48 rows=34396 width=12) (actual time=49.371..56.500 rows=38502 loops=1)
                                              Sort Key: questions.owneruserid
-                                             Sort Method: quicksort  Memory: 3044kB
-                                             ->  Gather  (cost=1000.00..428757.54 rows=34108 width=12) (actual time=8031.451..8230.357 rows=38618 loops=1)
-                                                   Workers Planned: 2
-                                                   Workers Launched: 2
-                                                   ->  Parallel Seq Scan on questions  (cost=0.00..424346.74 rows=14212 width=12) (actual time=7488.613..8212.346 rows=12873 loops=3)
-                                                         Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
-                                                         Rows Removed by Filter: 987127
-                                 ->  Sort  (cost=470527.89..470624.38 rows=38597 width=12) (actual time=8275.685..8282.248 rows=40283 loops=1)
+                                             Sort Method: quicksort  Memory: 3043kB
+                                             ->  Index Scan using idx_questions_creationdate on questions  (cost=0.44..5616.76 rows=34396 width=12) (actual time=0.090..40.008 rows=38587 loops=1)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                 ->  Sort  (cost=7912.70..8010.32 rows=39045 width=12) (actual time=40.162..47.737 rows=40256 loops=1)
                                        Sort Key: answers.owneruserid
-                                       Sort Method: quicksort  Memory: 3036kB
-                                       ->  Gather  (cost=1000.00..467587.53 rows=38597 width=12) (actual time=8050.313..8267.614 rows=38403 loops=1)
-                                             Workers Planned: 2
-                                             Workers Launched: 2
-                                             ->  Parallel Seq Scan on answers  (cost=0.00..462727.83 rows=16082 width=12) (actual time=8038.379..8253.527 rows=12801 loops=3)
-                                                   Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
-                                                   Rows Removed by Filter: 1462967
-                           ->  Materialize  (cost=459398.95..460012.68 rows=122746 width=12) (actual time=6523.503..6570.244 rows=690932 loops=1)
-                                 ->  Sort  (cost=459398.95..459705.82 rows=122746 width=12) (actual time=6523.490..6535.165 rows=117667 loops=1)
+                                       Sort Method: quicksort  Memory: 3035kB
+                                       ->  Index Scan using idx_answers_creationdate on answers  (cost=0.44..4934.97 rows=39045 width=12) (actual time=0.053..31.486 rows=38382 loops=1)
+                                             Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                           ->  Materialize  (cost=20167.48..20786.75 rows=123853 width=12) (actual time=79.437..125.597 rows=690133 loops=1)
+                                 ->  Sort  (cost=20167.48..20477.12 rows=123853 width=12) (actual time=79.432..91.108 rows=117606 loops=1)
                                        Sort Key: comments.userid
-                                       Sort Method: external merge  Disk: 3008kB
-                                       ->  Gather  (cost=1000.00..446923.65 rows=122746 width=12) (actual time=6210.165..6488.187 rows=117827 loops=1)
-                                             Workers Planned: 2
-                                             Workers Launched: 2
-                                             ->  Parallel Seq Scan on comments  (cost=0.00..433649.05 rows=51144 width=12) (actual time=6214.959..6474.672 rows=39276 loops=3)
-                                                   Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
-                                                   Rows Removed by Filter: 3708326
- Planning Time: 49.667 ms
+                                       Sort Method: external merge  Disk: 3000kB
+                                       ->  Index Scan using idx_comments_creationdate on comments  (cost=0.44..7573.09 rows=123853 width=12) (actual time=0.069..48.131 rows=117765 loops=1)
+                                             Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+ Planning Time: 1.558 ms
  JIT:
-   Functions: 59
-   Options: Inlining true, Optimization true, Expressions true, Deforming true
-   Timing: Generation 4.803 ms, Inlining 467.088 ms, Optimization 223.693 ms, Emission 185.629 ms, Total 881.213 ms
- Execution Time: 27642.480 ms
-(52 rows)
+   Functions: 41
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.822 ms, Inlining 0.000 ms, Optimization 0.718 ms, Emission 17.603 ms, Total 20.143 ms
+ Execution Time: 3663.838 ms
+(40 rows)
 

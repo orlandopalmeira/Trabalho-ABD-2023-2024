@@ -1,55 +1,55 @@
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- GroupAggregate  (cost=48687844.75..9565537731.91 rows=20000 width=44) (actual time=10112.916..12118.643 rows=1799 loops=1)
+ GroupAggregate  (cost=48687853.91..9565537741.07 rows=20000 width=44) (actual time=7533.010..9547.158 rows=1799 loops=1)
    Group Key: (generate_series('2008'::numeric, EXTRACT(year FROM now()))), (generate_series(0, (SubPlan 1), 5000))
-   ->  Merge Left Join  (cost=48687844.75..9565534052.25 rows=463955 width=40) (actual time=10112.659..12108.663 rows=89507 loops=1)
+   ->  Merge Left Join  (cost=48687853.91..9565534061.41 rows=463955 width=40) (actual time=7532.740..9537.313 rows=89507 loops=1)
          Merge Cond: ((generate_series('2008'::numeric, EXTRACT(year FROM now()))) = (EXTRACT(year FROM users.creationdate)))
          Join Filter: ((floor(((users.reputation / 5000))::double precision) * '5000'::double precision) = ((generate_series(0, (SubPlan 1), 5000)))::double precision)
          Rows Removed by Join Filter: 9157245
-         ->  Group  (cost=47728468.87..9561557968.87 rows=200000 width=36) (actual time=4754.851..4755.348 rows=1799 loops=1)
+         ->  Group  (cost=47728468.87..9561557968.87 rows=200000 width=36) (actual time=4722.060..4722.509 rows=1799 loops=1)
                Group Key: (generate_series('2008'::numeric, EXTRACT(year FROM now()))), (generate_series(0, (SubPlan 1), 5000))
-               ->  Sort  (cost=47728468.87..47730968.87 rows=1000000 width=36) (actual time=4754.822..4754.969 rows=1799 loops=1)
+               ->  Sort  (cost=47728468.87..47730968.87 rows=1000000 width=36) (actual time=4722.028..4722.160 rows=1799 loops=1)
                      Sort Key: (generate_series('2008'::numeric, EXTRACT(year FROM now()))), (generate_series(0, (SubPlan 1), 5000))
                      Sort Method: quicksort  Memory: 119kB
-                     ->  ProjectSet  (cost=0.00..47574120.02 rows=1000000 width=36) (actual time=634.348..4754.358 rows=1799 loops=1)
-                           ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32) (actual time=373.754..373.779 rows=17 loops=1)
-                                 ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=373.716..373.717 rows=1 loops=1)
+                     ->  ProjectSet  (cost=0.00..47574120.02 rows=1000000 width=36) (actual time=622.723..4721.485 rows=1799 loops=1)
+                           ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32) (actual time=363.035..363.065 rows=17 loops=1)
+                                 ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=363.005..363.006 rows=1 loops=1)
                            SubPlan 1
-                             ->  Aggregate  (cost=47569.10..47569.11 rows=1 width=4) (actual time=257.663..257.663 rows=1 loops=17)
-                                   ->  Seq Scan on users users_1  (cost=0.00..47550.44 rows=7463 width=4) (actual time=121.204..253.063 rows=87806 loops=17)
+                             ->  Aggregate  (cost=47569.10..47569.11 rows=1 width=4) (actual time=256.358..256.358 rows=1 loops=17)
+                                   ->  Seq Scan on users users_1  (cost=0.00..47550.44 rows=7463 width=4) (actual time=120.579..251.465 rows=87806 loops=17)
                                          Filter: (EXTRACT(year FROM creationdate) = (generate_series('2008'::numeric, EXTRACT(year FROM now()))))
                                          Rows Removed by Filter: 1404890
-         ->  Sort  (cost=959375.88..959607.86 rows=92791 width=16) (actual time=5357.770..6064.768 rows=9245588 loops=1)
+         ->  Sort  (cost=959385.04..959617.02 rows=92791 width=16) (actual time=2810.635..3530.223 rows=9245588 loops=1)
                Sort Key: (EXTRACT(year FROM users.creationdate))
                Sort Method: external sort  Disk: 3384kB
-               ->  Gather  (cost=903198.96..951719.84 rows=92791 width=16) (actual time=5193.293..5348.047 rows=88344 loops=1)
+               ->  Gather  (cost=903208.12..951729.00 rows=92791 width=16) (actual time=2643.374..2802.919 rows=88344 loops=1)
                      Workers Planned: 2
                      Workers Launched: 2
-                     ->  Parallel Hash Semi Join  (cost=902198.96..941440.74 rows=38663 width=16) (actual time=5176.802..5306.995 rows=29448 loops=3)
+                     ->  Parallel Hash Semi Join  (cost=902208.12..941449.90 rows=38663 width=16) (actual time=2627.837..2760.250 rows=29448 loops=3)
                            Hash Cond: (users.id = a.owneruserid)
-                           ->  Parallel Seq Scan on users  (cost=0.00..31379.57 rows=621957 width=16) (actual time=0.017..40.543 rows=497565 loops=3)
-                           ->  Parallel Hash  (cost=901032.21..901032.21 rows=93340 width=8) (actual time=5175.903..5176.339 rows=127916 loops=3)
-                                 Buckets: 524288 (originally 262144)  Batches: 1 (originally 1)  Memory Usage: 21056kB
-                                 ->  Parallel Hash Semi Join  (cost=390842.10..901032.21 rows=93340 width=8) (actual time=4997.686..5143.748 rows=127916 loops=3)
+                           ->  Parallel Seq Scan on users  (cost=0.00..31379.57 rows=621957 width=16) (actual time=0.032..41.424 rows=497565 loops=3)
+                           ->  Parallel Hash  (cost=901041.37..901041.37 rows=93340 width=8) (actual time=2627.036..2627.043 rows=127916 loops=3)
+                                 Buckets: 524288 (originally 262144)  Batches: 1 (originally 1)  Memory Usage: 21088kB
+                                 ->  Parallel Hash Semi Join  (cost=390841.57..901041.37 rows=93340 width=8) (actual time=2450.530..2596.590 rows=127916 loops=3)
                                        Hash Cond: (a.id = v.postid)
-                                       ->  Parallel Seq Scan on answers a  (cost=0.00..439674.59 rows=1844259 width=12) (actual time=0.050..468.663 rows=1475768 loops=3)
-                                       ->  Parallel Hash  (cost=386626.75..386626.75 rows=256908 width=8) (actual time=4304.957..4304.960 rows=127916 loops=3)
-                                             Buckets: 262144  Batches: 8  Memory Usage: 4000kB
-                                             ->  Hash Join  (cost=1.19..386626.75 rows=256908 width=8) (actual time=2868.240..4281.047 rows=127916 loops=3)
+                                       ->  Parallel Seq Scan on answers a  (cost=0.00..439679.10 rows=1844710 width=12) (actual time=0.052..404.433 rows=1475768 loops=3)
+                                       ->  Parallel Hash  (cost=386626.34..386626.34 rows=256899 width=8) (actual time=1830.919..1830.922 rows=127916 loops=3)
+                                             Buckets: 262144  Batches: 8  Memory Usage: 3968kB
+                                             ->  Hash Join  (cost=1.19..386626.34 rows=256899 width=8) (actual time=1056.150..1805.937 rows=127916 loops=3)
                                                    Hash Cond: (v.votetypeid = vt.id)
-                                                   ->  Parallel Seq Scan on votes v  (cost=0.00..374326.11 rows=3596706 width=10) (actual time=2867.971..4104.356 rows=2885953 loops=3)
+                                                   ->  Parallel Seq Scan on votes v  (cost=0.00..374326.11 rows=3596585 width=10) (actual time=1055.994..1634.762 rows=2885953 loops=3)
                                                          Filter: (creationdate >= (now() - '5 years'::interval))
                                                          Rows Removed by Filter: 5632851
-                                                   ->  Hash  (cost=1.18..1.18 rows=1 width=2) (actual time=0.201..0.202 rows=1 loops=3)
+                                                   ->  Hash  (cost=1.18..1.18 rows=1 width=2) (actual time=0.076..0.077 rows=1 loops=3)
                                                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
-                                                         ->  Seq Scan on votestypes vt  (cost=0.00..1.18 rows=1 width=2) (actual time=0.189..0.191 rows=1 loops=3)
+                                                         ->  Seq Scan on votestypes vt  (cost=0.00..1.18 rows=1 width=2) (actual time=0.066..0.067 rows=1 loops=3)
                                                                Filter: ((name)::text = 'AcceptedByOriginator'::text)
                                                                Rows Removed by Filter: 13
- Planning Time: 7.121 ms
+ Planning Time: 1.558 ms
  JIT:
    Functions: 114
    Options: Inlining true, Optimization true, Expressions true, Deforming true
-   Timing: Generation 4.855 ms, Inlining 228.939 ms, Optimization 315.860 ms, Emission 225.139 ms, Total 774.793 ms
- Execution Time: 12138.756 ms
+   Timing: Generation 4.392 ms, Inlining 215.432 ms, Optimization 314.726 ms, Emission 216.750 ms, Total 751.301 ms
+ Execution Time: 9567.469 ms
 (51 rows)
 
