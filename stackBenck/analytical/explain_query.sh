@@ -9,4 +9,4 @@ fi
 file_name=$1
 comando="EXPLAIN ANALYZE $(cat $file_name)"
 # Run the query with EXPLAIN ANALYZE
-sudo -u postgres psql -d stack -c "$comando"
+psql -d stack -c "$comando"

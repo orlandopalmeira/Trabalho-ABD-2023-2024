@@ -7,4 +7,4 @@ if [ "$#" -ne 1 ]; then
 fi
 
 file_name=$1
-sudo -u postgres psql -d stack -f $file_name
+psql -d stack -f $file_name

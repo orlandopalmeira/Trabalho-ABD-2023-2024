@@ -1,0 +1,28 @@
+                                                                                                                                QUERY PLAN                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=1130312.65..1161034.30 rows=120077 width=16) (actual time=8730.625..9339.692 rows=1883942 loops=1)
+   Group Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+   ->  Gather Merge  (cost=1130312.65..1158332.57 rows=240154 width=16) (actual time=8730.586..9041.522 rows=1887966 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         ->  Sort  (cost=1129312.63..1129612.82 rows=120077 width=16) (actual time=8659.783..8727.955 rows=629322 loops=3)
+               Sort Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+               Sort Method: external merge  Disk: 15680kB
+               Worker 0:  Sort Method: external merge  Disk: 16456kB
+               Worker 1:  Sort Method: external merge  Disk: 15992kB
+               ->  Partial HashAggregate  (cost=1047010.71..1117127.47 rows=120077 width=16) (actual time=7061.001..8484.626 rows=629322 loops=3)
+                     Group Key: date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone)
+                     Batches: 21  Memory Usage: 8249kB  Disk Usage: 238384kB
+                     Worker 0:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 246752kB
+                     Worker 1:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 242552kB
+                     ->  Parallel Seq Scan on badges  (cost=0.00..552976.97 rows=8782822 width=8) (actual time=105.790..5339.465 rows=9097158 loops=3)
+                           Filter: ((NOT tagbased) AND (userid <> '-1'::integer) AND (class = ANY ('{1,2,3}'::integer[])) AND ((name)::text <> ALL ('{Analytical,Census,"Documentation Beta","Documentation Pioneer","Documentation User",Reversal,Tumbleweed}'::text[])))
+                           Rows Removed by Filter: 283063
+ Planning Time: 2.952 ms
+ JIT:
+   Functions: 36
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 3.118 ms, Inlining 187.807 ms, Optimization 104.070 ms, Emission 77.160 ms, Total 372.155 ms
+ Execution Time: 9447.080 ms
+(24 rows)
+

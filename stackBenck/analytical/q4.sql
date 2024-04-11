@@ -10,7 +10,6 @@ WHERE NOT tagbased
         'Reversal',
         'Tumbleweed'
     )
-    AND class in (1, 2, 3)
     AND userid <> -1
 GROUP BY 1
 ORDER BY 1;
