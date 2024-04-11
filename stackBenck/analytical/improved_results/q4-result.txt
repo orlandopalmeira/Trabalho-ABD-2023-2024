@@ -1,0 +1,24 @@
+                                                                          QUERY PLAN                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=1014877.29..1063819.02 rows=191291 width=16) (actual time=4311.545..4840.558 rows=1883942 loops=1)
+   Group Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+   ->  Gather Merge  (cost=1014877.29..1059514.97 rows=382582 width=16) (actual time=4311.512..4577.932 rows=1889267 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         ->  Sort  (cost=1013877.26..1014355.49 rows=191291 width=16) (actual time=4209.151..4264.647 rows=629756 loops=3)
+               Sort Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+               Sort Method: external merge  Disk: 16800kB
+               Worker 0:  Sort Method: external merge  Disk: 15640kB
+               Worker 1:  Sort Method: external merge  Disk: 15720kB
+               ->  Partial HashAggregate  (cost=902588.94..993823.37 rows=191291 width=16) (actual time=2374.657..4059.005 rows=629756 loops=3)
+                     Group Key: date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone)
+                     Planned Partitions: 4  Batches: 21  Memory Usage: 8249kB  Disk Usage: 248072kB
+                     Worker 0:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 241704kB
+                     Worker 1:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 235336kB
+                     ->  Parallel Seq Scan on badges_mat_view  (cost=0.00..262917.26 rows=11371941 width=8) (actual time=65.484..807.368 rows=9097158 loops=3)
+ Planning Time: 0.091 ms
+ JIT:
+   Functions: 30
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 1.619 ms, Inlining 111.563 ms, Optimization 70.170 ms, Emission 50.623 ms, Total 233.976 ms
+ Execution Time: 4899.525 ms

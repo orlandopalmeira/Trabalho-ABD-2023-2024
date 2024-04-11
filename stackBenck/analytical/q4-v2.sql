@@ -18,4 +18,3 @@ ORDER BY 1;
 --     )
 --     AND class in (1, 2, 3)
 --     AND userid <> -1
--- ORDER BY date;
