@@ -1,18 +1,16 @@
--- Active: 1708441413272@@127.0.0.1@5432@stack
+-- Active: 1712845059097@@127.0.0.1@5432@stack
 -- # Índices para a query 4
 -- # pensou-se em criar um indice para a data, mas verificamos que não é utilizado o indice, uma vez que o agrupamento é feito em relação ao resultado de date_bin e não da data em si (por verificar com EXPLAIN ANALYZE)
 -- # um indice nos nomes também não se provou muito útil, mas não sei bem porquê (talvez porque o filtro é feito em relação a uma lista de valores)(verificar melhor a veracidade disto)
 -- # um indice no campo tagbased também não se provou muito útil 
 -- # também tentamos criar um indice composto com os campos tagbased e name, mas também não foi aproveitado pelo planner
 
+-- Indices b-tree (nao deram resultado)
+CREATE INDEX idx_badges_date ON badges_mat_view (date);
+DROP INDEX IF EXISTS idx_badges_date;
 
--- Indices de hash
-
+-- Indices de hash(nem consegui criar o indice)
 CREATE INDEX idx_badges_name ON badges USING hash (name);
-CREATE INDEX idx_badges_tagbased ON badges USING hash (tagbased);
-CREATE INDEX idx_badges_name ON badges (name)
-
----
 
 
 
