@@ -84,7 +84,7 @@ def main():
     # tables = ['Answers', 'Badges', 'Comments', 'Questions', 'QuestionsLinks', 'QuestionsTags', 'Tags', 'Users', 'Votes', 'VotesTypes']
     # for table in tables:
     #     print(f"Loading {table}...")
-    #     df = spark.read.csv(f"../../stackBenck/db/data/{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    #     df = spark.read.csv(f"{data_to_path}{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
     #     df.createOrReplaceTempView(table.lower())
 
     # Loading parquet files
@@ -115,12 +115,12 @@ def main():
     # votesTypes_csv = spark.read.csv(f"{data_to_path}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
     # print("CSV data loaded.")
 
-
     # Check functioning
-    questions.sample(0.01).show(5)
+    # questions.sample(0.01).show(5)
+
 
     # Q1
-    # q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
 
 
     # Q4
