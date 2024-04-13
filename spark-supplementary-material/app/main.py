@@ -75,7 +75,7 @@ def main():
             .master("spark://spark:7077") \
             .config("spark.eventLog.enabled", "true") \
             .config("spark.eventLog.dir", "/tmp/spark-events") \
-            .config("spark.sql.adaptive.enabled", "false") \
+            .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.executor.memory", "1g") \
             .getOrCreate()
 
