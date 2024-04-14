@@ -1,0 +1,103 @@
+Os valores não foram obtidos pela máquina virtual da google cloud
+
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 4.592071501706485
+NewAnswer = 4.729336792988314
+Vote = 3.71892402704443
+QuestionInfo = 1816.9920472787235
+PostPoints = 1892.6214833031358
+UserProfile = 2.992172575
+Search = 421.7233221165644
+LatestByTag = 732.3012504161491
+
+Overall metrics
+---------------
+throughput (txn/s) = 34.30555555555556
+response time (ms) = 465.6272563682591
+abort rate (%) = 0.0
+
+
+------------------Melhoria no PostPoints----------------------
+
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 4.562304379396985
+NewAnswer = 4.666645527950311
+Vote = 3.9882148318363275
+QuestionInfo = 1775.899740074529
+PostPoints = 2.9056427505995206
+UserProfile = 3.635977695934001
+Search = 433.3461939975728
+LatestByTag = 655.7610011602565
+
+Overall metrics
+---------------
+throughput (txn/s) = 45.17777777777778
+response time (ms) = 354.3000896580177
+abort rate (%) = 0.0
+
+
+------------------Melhoria no QuestionInfo----------------------
+
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 4.559808740576496
+NewAnswer = 4.651658987212276
+Vote = 4.2677850856445145
+QuestionInfo = 2.9974152652880353
+PostPoints = 2.096281779717373
+UserProfile = 3.247948339027027
+Search = 556.4785161508197
+LatestByTag = 923.393525932956
+
+Overall metrics
+---------------
+throughput (txn/s) = 128.13333333333333
+response time (ms) = 124.57903789819632
+abort rate (%) = 0.0
+
+
+------------------Melhoria no LatestByTag----------------------
+
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 5.21010021918429
+NewAnswer = 6.119412354977689
+Vote = 5.6464653111084075
+QuestionInfo = 4.765807523135033
+PostPoints = 5.597512537438119
+UserProfile = 3.046398552687198
+Search = 697.3297961595712
+LatestByTag = 52.076463112975915
+
+Overall metrics
+---------------
+throughput (txn/s) = 362.6
+response time (ms) = 44.16933421849911
+abort rate (%) = 0.0
+
+
+------------------Melhoria no Search----------------------
+
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 3.870905956660275
+NewAnswer = 4.325473431013221
+Vote = 3.3251852871895156
+QuestionInfo = 2.1826874303682375
+PostPoints = 2.2709776104664656
+UserProfile = 1.4062499315962307
+Search = 7.891057742371905
+LatestByTag = 54.81239700625466
+
+Overall metrics
+---------------
+throughput (txn/s) = 1944.8277777777778
+response time (ms) = 8.224761268589907
+abort rate (%) = 0.0
