@@ -1,12 +1,10 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import count, lower, udf, broadcast
-from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window
+from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months
 # from pyspark.sql.window import Window
-# from pyspark.sql.functions import count, spark_partition_id, lower, udf, broadcast, date_sub, current_date, current_timestamp, col, collect_list, floor, year, avg, rank, expr
 from pyspark.sql.types import StringType, IntegerType
 import time
-# from datetime import datetime, timedelta
 from functools import wraps
 import sys
 
@@ -32,24 +30,35 @@ def showPartitionSize(df: DataFrame):
 
 
 # Queries analíticas
+
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
+    #! Existe uma dessincronia com a versão do postgres
 
-    filtered_questions = questions.where(questions.CreationDate.between(current_timestamp() - expr(f"INTERVAL {interval}"), current_timestamp()))
-    filtered_answers = answers.where(answers.CreationDate.between(current_timestamp() - expr(f"INTERVAL {interval}"), current_timestamp()))
-    filtered_comments = comments.where(comments.CreationDate.between(current_timestamp() - expr(f"INTERVAL {interval}"), current_timestamp()))
+    # Calculate the date 6 months ago
+    six_months_ago = add_months(current_date(), -6) #! Talvez seja esta expressão o problema, havendo alguma especie de funcionalismo diferente
 
-    joined = users.join(filtered_questions, users["id"] == filtered_questions["owneruserid"], "left") \
-                        .join(filtered_answers, users["id"] == filtered_answers["owneruserid"], "left") \
-                        .join(filtered_comments, users["id"] == filtered_comments["userid"], "left")
+    # Filter and aggregate the questions, answers, and comments dataframes
+    questions_agg = questions.filter((questions["creationdate"] >= six_months_ago) & (questions["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("qcount")) #! Ver melhor o que faz o count(*)
+    answers_agg = answers.filter((answers["creationdate"] >= six_months_ago) & (answers["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("acount"))
+    comments_agg = comments.filter((comments["creationdate"] >= six_months_ago) & (comments["creationdate"] <= current_date())).groupBy("userid").agg(count("*").alias("ccount"))
 
-    result = joined.groupBy(users["id"], users["displayname"]) \
-                         .agg((countDistinct(filtered_questions["id"]) + \
-                               countDistinct(filtered_answers["id"]) + \
-                               countDistinct(filtered_comments["id"])).alias("total")) \
-                         .orderBy(col("total").desc())
+    # DEBUG
+    questions_agg.orderBy(col('qcount').desc()).show()
+    answers_agg.orderBy(col('acount').desc()).show()
+    comments_agg.orderBy(col('ccount').desc()).show()
 
-    return result.show(100)
+    # Perform the joins
+    result_df = users\
+        .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
+        .join(answers_agg, users["id"] == answers_agg["owneruserid"], "left") \
+        .join(comments_agg, users["id"] == comments_agg["userid"], "left") \
+        .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
+        .orderBy(col('total').desc())\
+        .limit(100)
+
+    result_df.show()
+
 
 @timeit
 # def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, interval: StringType = "5 years", bucketInterval : IntegerType = 5000):
@@ -120,38 +129,53 @@ def main():
 
 
     # Q1
-    q1(users, questions, answers, comments, '6 months')
+    @timeit
+    def w1():
+        # showPartitionSize(answers) #! Existem 16 partições na answers com alguma skewness (resolver isto)
+        q1(users, questions, answers, comments, '6 months')
 
+    # Q2
+    @timeit
+    def w2():
+        q2()
+
+    # Q3
+    @timeit
+    def w3():
+        q3()
 
     # Q4
-    filtered_badges = badges.filter(
-        (col("tagbased") == False) &
-        (~col("name").isin(
-            'Analytical',
-            'Census',
-            'Documentation Beta',
-            'Documentation Pioneer',
-            'Documentation User',
-            'Reversal',
-            'Tumbleweed'
-        )) &
-        (col("class").isin(1, 2, 3)) &
-        (col("userid") != -1)
-    ).select("date").cache()
+    @timeit
+    def w4():
+        # q4(badges, "1 minute")
+        filtered_badges = badges.filter(
+            (col("tagbased") == False) &
+            (~col("name").isin(
+                'Analytical',
+                'Census',
+                'Documentation Beta',
+                'Documentation Pioneer',
+                'Documentation User',
+                'Reversal',
+                'Tumbleweed'
+            )) &
+            (col("class").isin(1, 2, 3)) &
+            (col("userid") != -1)
+        ).select("date").cache()
     
-    q4(filtered_badges, "1 minute")
+        q4(filtered_badges, "1 minute")
+    
 
 
     ## Maneira dinamica de chamar as queries (mas ainda tenho de ver como funciona caches e assim neste caso. Talvez precise de englobar as queries em workloads)
-    # if len(sys.argv) < 2:
-    #     print("Running all queries...")
-    #     q1(users, questions, answers, comments, '6 months')
-    #     q2()
-    #     q3()
-    #     q4(badges, "1 minute")
-    #     return
-    # else:
-    #     locals()[sys.argv[1]]()
+    if len(sys.argv) < 2:
+        print("Running all queries...")
+        q1(users, questions, answers, comments, '6 months')
+        q2()
+        q3()
+        q4(badges, "1 minute")
+    else:
+        locals()[sys.argv[1]]()
 
 
 if __name__ == '__main__':
