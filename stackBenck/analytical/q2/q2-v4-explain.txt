@@ -1,0 +1,67 @@
+                                                                                                              QUERY PLAN                                                                                                               
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=959707.65..961992.63 rows=291 width=17) (actual time=3191.667..3273.253 rows=1799 loops=1)
+   Group Key: buckets_mv.year, buckets_mv.reputation_range
+   Buffers: shared hit=774 read=633751, temp read=21724 written=21782
+   ->  Incremental Sort  (cost=959707.65..961958.42 rows=4173 width=13) (actual time=3191.623..3261.989 rows=89278 loops=1)
+         Sort Key: buckets_mv.year, buckets_mv.reputation_range
+         Presorted Key: buckets_mv.year
+         Full-sort Groups: 17  Sort Method: quicksort  Average Memory: 27kB  Peak Memory: 27kB
+         Pre-sorted Groups: 17  Sort Method: quicksort  Average Memory: 508kB  Peak Memory: 708kB
+         Buffers: shared hit=774 read=633751, temp read=21724 written=21782
+         ->  Merge Left Join  (cost=959570.26..961740.26 rows=4173 width=13) (actual time=3191.019..3242.938 rows=89278 loops=1)
+               Merge Cond: ((buckets_mv.year = (EXTRACT(year FROM users.creationdate))) AND (((buckets_mv.reputation_range)::double precision) = ((floor(((users.reputation / 5000))::double precision) * '5000'::double precision))))
+               Buffers: shared hit=771 read=633751, temp read=21724 written=21782
+               ->  Sort  (cost=125.25..129.75 rows=1799 width=9) (actual time=343.461..343.546 rows=1799 loops=1)
+                     Sort Key: buckets_mv.year, ((buckets_mv.reputation_range)::double precision)
+                     Sort Method: quicksort  Memory: 133kB
+                     Buffers: shared hit=15
+                     ->  Seq Scan on buckets_mv  (cost=0.00..27.99 rows=1799 width=9) (actual time=342.866..343.017 rows=1799 loops=1)
+                           Buffers: shared hit=10
+               ->  Sort  (cost=959445.00..959676.98 rows=92791 width=16) (actual time=2847.508..2883.279 rows=88115 loops=1)
+                     Sort Key: (EXTRACT(year FROM users.creationdate)), ((floor(((users.reputation / 5000))::double precision) * '5000'::double precision))
+                     Sort Method: external sort  Disk: 4664kB
+                     Buffers: shared hit=756 read=633751, temp read=21724 written=21782
+                     ->  Gather  (cost=903268.08..951788.96 rows=92791 width=16) (actual time=2658.692..2822.363 rows=88115 loops=1)
+                           Workers Planned: 2
+                           Workers Launched: 2
+                           Buffers: shared hit=756 read=633751, temp read=20559 written=20616
+                           ->  Parallel Hash Semi Join  (cost=902268.08..941509.86 rows=38663 width=16) (actual time=2643.599..2782.313 rows=29372 loops=3)
+                                 Hash Cond: (users.id = a.owneruserid)
+                                 Buffers: shared hit=756 read=633751, temp read=20559 written=20616
+                                 ->  Parallel Seq Scan on users  (cost=0.00..31379.57 rows=621957 width=16) (actual time=0.033..48.600 rows=497565 loops=3)
+                                       Buffers: shared hit=225 read=24935
+                                 ->  Parallel Hash  (cost=901101.33..901101.33 rows=93340 width=8) (actual time=2642.820..2642.825 rows=127538 loops=3)
+                                       Buckets: 524288 (originally 262144)  Batches: 1 (originally 1)  Memory Usage: 21056kB
+                                       Buffers: shared hit=409 read=608816, temp read=20559 written=20616
+                                       ->  Parallel Hash Semi Join  (cost=390787.86..901101.33 rows=93340 width=8) (actual time=2463.140..2610.976 rows=127538 loops=3)
+                                             Hash Cond: (a.id = v.postid)
+                                             Buffers: shared hit=409 read=608816, temp read=20559 written=20616
+                                             ->  Parallel Seq Scan on answers a  (cost=0.00..439679.10 rows=1844710 width=12) (actual time=0.055..421.918 rows=1475768 loops=3)
+                                                   Buffers: shared hit=192 read=421040
+                                             ->  Parallel Hash  (cost=386584.21..386584.21 rows=256212 width=8) (actual time=1818.191..1818.193 rows=127538 loops=3)
+                                                   Buckets: 262144  Batches: 8  Memory Usage: 3968kB
+                                                   Buffers: shared hit=217 read=187776, temp written=1176
+                                                   ->  Hash Join  (cost=1.19..386584.21 rows=256212 width=8) (actual time=1037.542..1795.612 rows=127538 loops=3)
+                                                         Hash Cond: (v.votetypeid = vt.id)
+                                                         Buffers: shared hit=217 read=187776
+                                                         ->  Parallel Seq Scan on votes v  (cost=0.00..374316.84 rows=3586978 width=10) (actual time=1037.407..1607.456 rows=2878818 loops=3)
+                                                               Filter: (creationdate >= (now() - '5 years'::interval))
+                                                               Rows Removed by Filter: 5639986
+                                                               Buffers: shared hit=192 read=187776
+                                                         ->  Hash  (cost=1.18..1.18 rows=1 width=2) (actual time=0.062..0.063 rows=1 loops=3)
+                                                               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                               Buffers: shared hit=3
+                                                               ->  Seq Scan on votestypes vt  (cost=0.00..1.18 rows=1 width=2) (actual time=0.055..0.057 rows=1 loops=3)
+                                                                     Filter: ((name)::text = 'AcceptedByOriginator'::text)
+                                                                     Rows Removed by Filter: 13
+                                                                     Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=567
+ Planning Time: 1.246 ms
+ JIT:
+   Functions: 106
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 4.182 ms, Inlining 209.179 ms, Optimization 312.712 ms, Emission 207.838 ms, Total 733.911 ms
+ Execution Time: 3293.499 ms
+(64 rows)
