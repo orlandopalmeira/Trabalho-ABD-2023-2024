@@ -22,13 +22,13 @@ select title, body, creationdate, owneruserid, acceptedanswerid, tag_list, answe
     where q.id = 31127474;
 
 
-CREATE INDEX idx_questions_id ON questions (id);
+CREATE INDEX idx_questions_id ON questions (id); -- Repetido no latetsByTag.sql
 CREATE INDEX idx_questionstags_questionid ON questionstags (questionid);
 CREATE INDEX idx_tags_id ON tags (id);
 CREATE INDEX idx_answers_parentid ON answers (parentid);
 CREATE INDEX idx_questionslinks_questionid ON questionslinks (questionid);
 
-DROP INDEX IF EXISTS idx_questions_id; -- Repetido no latetsByTag.sql
+DROP INDEX IF EXISTS idx_questions_id;
 DROP INDEX IF EXISTS idx_questionstags_questionid;
 DROP INDEX IF EXISTS idx_tags_id;
 DROP INDEX IF EXISTS idx_answers_parentid;
