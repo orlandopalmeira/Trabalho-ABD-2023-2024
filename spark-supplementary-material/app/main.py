@@ -44,9 +44,9 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     comments_agg = comments.filter((comments["creationdate"] >= six_months_ago) & (comments["creationdate"] <= current_date())).groupBy("userid").agg(count("*").alias("ccount"))
 
     # DEBUG
-    questions_agg.orderBy(col('qcount').desc()).show()
-    answers_agg.orderBy(col('acount').desc()).show()
-    comments_agg.orderBy(col('ccount').desc()).show()
+    # questions_agg.orderBy(col('qcount').desc()).show()
+    # answers_agg.orderBy(col('acount').desc()).show()
+    # comments_agg.orderBy(col('ccount').desc()).show()
 
     # Perform the joins
     result_df = users\
@@ -94,14 +94,17 @@ def main():
     # for table in tables:
     #     print(f"Loading {table}...")
     #     df = spark.read.csv(f"{data_to_path}{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    #     df.createOrReplaceTempView(table.lower())
+    #     df.createOrReplaceTempView(table.lower())d
 
     # Loading parquet files
     print("Loading parquet data...")
     answers = spark.read.parquet(f'{data_to_path}answers_parquet')
+    # answers_partitioned = spark.read.parquet(f'{data_to_path}answers_parquet_partitioned_creationdate')
     badges = spark.read.parquet(f'{data_to_path}badges_parquet')
     comments = spark.read.parquet(f'{data_to_path}comments_parquet')
+    # comments_partitioned = spark.read.parquet(f'{data_to_path}comments_parquet_partitioned_creationdate')
     questions = spark.read.parquet(f'{data_to_path}questions_parquet')
+    # questions_partitioned = spark.read.parquet(f'{data_to_path}questions_parquet_partitioned_creationdate')
     questionsLinks = spark.read.parquet(f'{data_to_path}questionsLinks_parquet')
     questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
     tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
@@ -110,6 +113,12 @@ def main():
     votesTypes = spark.read.parquet(f'{data_to_path}votesTypes_parquet') # tabela estática
     print("Parquet data loaded.")
 
+    # Partitioning parquet files
+    
+    
+    # answers.write.parquet(f'{data_to_path}answers_parquet_partitioned_creationdate', partitionBy='creationdate')
+    # questions.write.parquet(f'{data_to_path}questions_parquet_partitioned_creationdate', partitionBy='creationdate')
+    # comments.write.parquet(f'{data_to_path}comments_parquet_partitioned_creationdate', partitionBy='creationdate')
     # Loading csv files
     # print("Loading csv data...")
     # answers_csv = spark.read.csv(f"{data_to_path}Answers.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
@@ -176,6 +185,12 @@ def main():
         q4(badges, "1 minute")
     else:
         locals()[sys.argv[1]]()
+
+        print("Current Date Pyspark:")
+        # Get the current date
+        current_date = spark.sql("SELECT current_date()").collect()[0][0]
+
+        print("Current Date:", current_date)
 
 
 if __name__ == '__main__':

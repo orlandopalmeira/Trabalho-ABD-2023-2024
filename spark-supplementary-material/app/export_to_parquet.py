@@ -40,6 +40,11 @@ users.write.parquet(f'{path_to_data}users_parquet')
 votes.write.parquet(f'{path_to_data}votes_parquet')
 votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
 
+# Partitioning parquet files
+# answers.write.parquet(f'{path_to_data}answers_parquet_partitioned_creationdate', partitionBy='creationdate')
+# questions.write.parquet(f'{path_to_data}questions_parquet_partitioned_creationdate', partitionBy='creationdate')
+# comments.write.parquet(f'{path_to_data}comments_parquet_partitioned_creationdate', partitionBy='creationdate')    
+
 
 """
 # Using the DataFrame function write.parquet(out folder), export the titles DataFrame to Parquet
