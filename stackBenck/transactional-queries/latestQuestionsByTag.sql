@@ -17,11 +17,9 @@ ORDER BY tg.creationdate DESC
 LIMIT 25;
 
 
-CREATE INDEX idx_questions_id ON questions (id); -- Repetido no questionInfo.sql
 CREATE INDEX idx_questionstags_tagid ON questionstags (tagid);
 CREATE INDEX idx_questions_creationdate ON questions (creationdate); -- Repetido no q1-improvs.sql
 
 
 DROP INDEX IF EXISTS idx_questionstags_tagid;
-DROP INDEX IF EXISTS idx_questions_id;
 DROP INDEX IF EXISTS idx_questions_creationdate;
