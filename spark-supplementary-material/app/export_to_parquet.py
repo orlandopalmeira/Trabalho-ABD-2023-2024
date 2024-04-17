@@ -36,8 +36,19 @@ votes.write.parquet(f'{path_to_data}votes_parquet')
 votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
 """
 
-"""
+
+#> Sort() e depois escrita
+answers_sorted = answers.sort('CreationDate')
+questions_sorted = questions.sort('CreationDate')
+comments_sorted = comments.sort('CreationDate')
+
+answers_sorted.write.parquet(f'{path_to_data}answers_sorted_parquet')
+questions_sorted.write.parquet(f'{path_to_data}questions_sorted_parquet')
+comments_sorted.write.parquet(f'{path_to_data}comments_sorted_parquet')
+
+
 #> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (PIOROU DE 11 PARA 16 SECS)
+"""
 answers = answers.withColumn('creationyear', year(answers.CreationDate))
 answers.write.parquet(f'{path_to_data}answers_parquet_part_year', partitionBy='creationyear')
 questions = questions.withColumn('creationyear', year(questions.CreationDate))

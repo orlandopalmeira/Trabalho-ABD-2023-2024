@@ -41,15 +41,15 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     comments_agg = comments.filter((comments["creationdate"] >= six_months_ago) & (comments["creationdate"] <= current_date())).groupBy("userid").agg(count("*").alias("ccount"))
 
     # DEBUG
-    # questions_agg.orderBy(col('qcount').desc()).show()
-    # answers_agg.orderBy(col('acount').desc()).show()
-    # comments_agg.orderBy(col('ccount').desc()).show()
+    # questions_agg.explain()
+    # answers_agg.explain()
+    # comments_agg.explain()
     # showPartitionSize(questions_agg)
     # showPartitionSize(answers_agg)
     # showPartitionSize(comments_agg)
 
     # Perform the joins
-    result_df = users\
+    result_df = users.select(col('id'), col('displayname'))\
         .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
         .join(answers_agg, users["id"] == answers_agg["owneruserid"], "left") \
         .join(comments_agg, users["id"] == comments_agg["userid"], "left") \
@@ -57,8 +57,8 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
         .orderBy(col('total').desc())\
         .limit(100)
 
-    result_df.show()
-    # return result_df.collect()
+    # result_df.show()
+    return result_df.collect()
 
 
 @timeit
@@ -91,12 +91,15 @@ def main():
     data_to_path = "/app/stack/"
 
     answers = spark.read.parquet(f'{data_to_path}answers_parquet')
+    answers = answers.sort('creationdate')# Apos o sort são criadas bastante mais partições
     # answers_sorted = spark.read.parquet(f'{data_to_path}answers_parquet_part_year')
 
     comments = spark.read.parquet(f'{data_to_path}comments_parquet')
+    comments = comments.sort('creationdate')
     # comments_sorted = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
 
     questions = spark.read.parquet(f'{data_to_path}questions_parquet')
+    questions = questions.sort('creationdate')
     # questions_sorted = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
 
     badges = spark.read.parquet(f'{data_to_path}badges_parquet')
