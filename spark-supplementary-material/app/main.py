@@ -9,7 +9,6 @@ from functools import wraps
 import sys
 
 
-
 # utility to measure the runtime of some function
 def timeit(f):
     @wraps(f)
@@ -33,13 +32,11 @@ def showPartitionSize(df: DataFrame):
 
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
-    #! Existe uma dessincronia com a versão do postgres
 
-    # Calculate the date 6 months ago
-    six_months_ago = add_months(current_date(), -6) #! Talvez seja esta expressão o problema, havendo alguma especie de funcionalismo diferente
-
-    # Filter and aggregate the questions, answers, and comments dataframes
-    questions_agg = questions.filter((questions["creationdate"] >= six_months_ago) & (questions["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("qcount")) #! Ver melhor o que faz o count(*)
+    six_months_ago = current_timestamp() - expr(f"INTERVAL {interval}")
+    
+    # Filter and aggregate the questions, answers, and comments dataframes #! Ver melhor o que faz o count(*)
+    questions_agg = questions.filter((questions["creationdate"] >= six_months_ago) & (questions["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("qcount"))
     answers_agg = answers.filter((answers["creationdate"] >= six_months_ago) & (answers["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("acount"))
     comments_agg = comments.filter((comments["creationdate"] >= six_months_ago) & (comments["creationdate"] <= current_date())).groupBy("userid").agg(count("*").alias("ccount"))
 
@@ -47,6 +44,9 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     # questions_agg.orderBy(col('qcount').desc()).show()
     # answers_agg.orderBy(col('acount').desc()).show()
     # comments_agg.orderBy(col('ccount').desc()).show()
+    # showPartitionSize(questions_agg)
+    # showPartitionSize(answers_agg)
+    # showPartitionSize(comments_agg)
 
     # Perform the joins
     result_df = users\
@@ -58,6 +58,7 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
         .limit(100)
 
     result_df.show()
+    # return result_df.collect()
 
 
 @timeit
@@ -72,10 +73,9 @@ def q3():
 
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
-    pass
-    # return badges.groupBy(window(col("date"), "1 minute", startTime='2008-01-01 00:00:00')) \
-    #       .agg(count("*").alias("count")) \
-    #       .orderBy("window")
+    return badges.groupBy(window(col("date"), "1 minute", startTime='2008-01-01 00:00:00')) \
+          .agg(count("*").alias("count")) \
+          .orderBy("window")
 
 
 
@@ -84,63 +84,41 @@ def main():
             .master("spark://spark:7077") \
             .config("spark.eventLog.enabled", "true") \
             .config("spark.eventLog.dir", "/tmp/spark-events") \
-            .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.executor.memory", "1g") \
             .getOrCreate()
-
+            # .config("spark.sql.adaptive.enabled", "true") \
 
     data_to_path = "/app/stack/"
-    # tables = ['Answers', 'Badges', 'Comments', 'Questions', 'QuestionsLinks', 'QuestionsTags', 'Tags', 'Users', 'Votes', 'VotesTypes']
-    # for table in tables:
-    #     print(f"Loading {table}...")
-    #     df = spark.read.csv(f"{data_to_path}{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    #     df.createOrReplaceTempView(table.lower())d
 
-    # Loading parquet files
-    print("Loading parquet data...")
     answers = spark.read.parquet(f'{data_to_path}answers_parquet')
-    # answers_partitioned = spark.read.parquet(f'{data_to_path}answers_parquet_partitioned_creationdate')
-    badges = spark.read.parquet(f'{data_to_path}badges_parquet')
+    # answers_sorted = spark.read.parquet(f'{data_to_path}answers_parquet_part_year')
+
     comments = spark.read.parquet(f'{data_to_path}comments_parquet')
-    # comments_partitioned = spark.read.parquet(f'{data_to_path}comments_parquet_partitioned_creationdate')
+    # comments_sorted = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
+
     questions = spark.read.parquet(f'{data_to_path}questions_parquet')
-    # questions_partitioned = spark.read.parquet(f'{data_to_path}questions_parquet_partitioned_creationdate')
+    # questions_sorted = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
+
+    badges = spark.read.parquet(f'{data_to_path}badges_parquet')
     questionsLinks = spark.read.parquet(f'{data_to_path}questionsLinks_parquet')
     questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
     tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
     users = spark.read.parquet(f'{data_to_path}users_parquet')
     votes = spark.read.parquet(f'{data_to_path}votes_parquet')
     votesTypes = spark.read.parquet(f'{data_to_path}votesTypes_parquet') # tabela estática
-    print("Parquet data loaded.")
 
-    # Partitioning parquet files
     
-    
-    # answers.write.parquet(f'{data_to_path}answers_parquet_partitioned_creationdate', partitionBy='creationdate')
-    # questions.write.parquet(f'{data_to_path}questions_parquet_partitioned_creationdate', partitionBy='creationdate')
-    # comments.write.parquet(f'{data_to_path}comments_parquet_partitioned_creationdate', partitionBy='creationdate')
-    # Loading csv files
-    # print("Loading csv data...")
-    # answers_csv = spark.read.csv(f"{data_to_path}Answers.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # badges_csv = spark.read.csv(f"{data_to_path}Badges.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # comments_csv = spark.read.csv(f"{data_to_path}Comments.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questions_csv = spark.read.csv(f"{data_to_path}Questions.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questionsLinks_csv = spark.read.csv(f"{data_to_path}QuestionsLinks.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questionsTags_csv = spark.read.csv(f"{data_to_path}QuestionsTags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # tags_csv = spark.read.csv(f"{data_to_path}Tags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # users_csv = spark.read.csv(f"{data_to_path}Users.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # votes_csv = spark.read.csv(f"{data_to_path}Votes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # votesTypes_csv = spark.read.csv(f"{data_to_path}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # print("CSV data loaded.")
-
-    # Check functioning
-    # questions.sample(0.01).show(5)
+    ##> Tentativa de partitionar por creationdate mas sem a criação de um ficheiro por cada valor unico da data.
+    #! UNTESTED
+    # answers_sorted = answers.orderBy('creationdate')
+    # showPartitionSize(answers_sorted)
+    # answers_sorted = answers_sorted.repartition(8)
+    # showPartitionSize(answers_sorted)
 
 
     # Q1
     @timeit
     def w1():
-        # showPartitionSize(answers) #! Existem 16 partições na answers com alguma skewness (resolver isto)
         q1(users, questions, answers, comments, '6 months')
 
     # Q2
@@ -183,15 +161,40 @@ def main():
         q2()
         q3()
         q4(badges, "1 minute")
+    elif sys.argv[1] == "t":
+        # !DEBUG
+        print("DEBUGGING!")
+
     else:
         locals()[sys.argv[1]]()
 
-        print("Current Date Pyspark:")
-        # Get the current date
-        current_date = spark.sql("SELECT current_date()").collect()[0][0]
 
-        print("Current Date:", current_date)
 
 
 if __name__ == '__main__':
     main()
+
+    
+    
+    
+    
+    
+
+    # tables = ['Answers', 'Badges', 'Comments', 'Questions', 'QuestionsLinks', 'QuestionsTags', 'Tags', 'Users', 'Votes', 'VotesTypes']
+    # for table in tables:
+    #     print(f"Loading {table}...")
+    #     df = spark.read.csv(f"{data_to_path}{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    #     df.createOrReplaceTempView(table.lower())
+    # Loading csv files
+    # print("Loading csv data...")
+    # answers_csv = spark.read.csv(f"{data_to_path}Answers.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # badges_csv = spark.read.csv(f"{data_to_path}Badges.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # comments_csv = spark.read.csv(f"{data_to_path}Comments.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # questions_csv = spark.read.csv(f"{data_to_path}Questions.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # questionsLinks_csv = spark.read.csv(f"{data_to_path}QuestionsLinks.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # questionsTags_csv = spark.read.csv(f"{data_to_path}QuestionsTags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # tags_csv = spark.read.csv(f"{data_to_path}Tags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # users_csv = spark.read.csv(f"{data_to_path}Users.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # votes_csv = spark.read.csv(f"{data_to_path}Votes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # votesTypes_csv = spark.read.csv(f"{data_to_path}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+    # print("CSV data loaded.")

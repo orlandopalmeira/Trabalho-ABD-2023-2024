@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import year, month, concat, lit
 
 # the spark session
 spark = SparkSession.builder.master("spark://spark:7077") \
@@ -21,14 +22,8 @@ votes = spark.read.csv(f"{path_to_data}Votes.csv", header=True, inferSchema=True
 votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
 
 
-# tables = ['Answers', 'Badges', 'Comments', 'Questions', 'QuestionsLinks', 'QuestionsTags', 'Tags', 'Users', 'Votes', 'VotesTypes']
-# for table in tables:
-#     print(f"Loading {table}...")
-#     df = spark.read.csv(f"../../stackBenck/db/data/{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # df.createOrReplaceTempView(table.lower())
-
-
-# write the data to parquet
+#> write the data to basic parquet
+"""
 answers.write.parquet(f'{path_to_data}answers_parquet')
 badges.write.parquet(f'{path_to_data}badges_parquet')
 comments.write.parquet(f'{path_to_data}comments_parquet')
@@ -39,12 +34,50 @@ tags.write.parquet(f'{path_to_data}tags_parquet')
 users.write.parquet(f'{path_to_data}users_parquet')
 votes.write.parquet(f'{path_to_data}votes_parquet')
 votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
+"""
 
-# Partitioning parquet files
+"""
+#> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (PIOROU DE 11 PARA 16 SECS)
+answers = answers.withColumn('creationyear', year(answers.CreationDate))
+answers.write.parquet(f'{path_to_data}answers_parquet_part_year', partitionBy='creationyear')
+questions = questions.withColumn('creationyear', year(questions.CreationDate))
+questions.write.parquet(f'{path_to_data}questions_parquet_part_year', partitionBy='creationyear')
+comments = comments.withColumn('creationyear', year(comments.CreationDate))
+comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy='creationyear')
+"""
+
+
+
+#> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (YEAR_MONTH) (AINDA ASSIM CRIA MUITAS PARTIÇÕES, E PIORA EXEC_TIME)
+"""
+answers = answers.withColumn('creationyearmonth', 
+                             concat(year(answers.CreationDate), 
+                                    lit('-'), 
+                                    month(answers.CreationDate)))
+answers.write.parquet(f'{path_to_data}answers_parquet_part_yearmonth', partitionBy='creationyearmonth')
+"""
+
+
+#> Orderby e depois write to parquet(NAO SE NOTOU MELHORIA, TENDO FICADO IGUAL E AS VEZES PIOR)
+"""
+answers_sorted = answers.orderBy('creationdate')
+questions_sorted = questions.orderBy('creationdate')
+comments_sorted = comments.orderBy('creationdate')
+answers_sorted.write.parquet(f'{path_to_data}answers_sorted_parquet')
+questions_sorted.write.parquet(f'{path_to_data}questions_sorted_parquet')
+comments_sorted.write.parquet(f'{path_to_data}comments_sorted_parquet')
+"""
+
+#> Partitioning parquet files (isto cria ficheiros para cada valor especifico de creationdate, o que NÃO SERVE)
+"""
 # answers.write.parquet(f'{path_to_data}answers_parquet_partitioned_creationdate', partitionBy='creationdate')
 # questions.write.parquet(f'{path_to_data}questions_parquet_partitioned_creationdate', partitionBy='creationdate')
-# comments.write.parquet(f'{path_to_data}comments_parquet_partitioned_creationdate', partitionBy='creationdate')    
+# comments.write.parquet(f'{path_to_data}comments_parquet_partitioned_creationdate', partitionBy='creationdate')
+"""    
 
+
+
+# Ficha 5 exemplos
 
 """
 # Using the DataFrame function write.parquet(out folder), export the titles DataFrame to Parquet
