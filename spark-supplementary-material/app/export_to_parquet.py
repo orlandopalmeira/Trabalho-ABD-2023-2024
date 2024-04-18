@@ -1,5 +1,13 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import year, month, concat, lit
+
+def count_rows(iterator):
+    yield len(list(iterator))
+
+# show the number of rows in each partition
+def showPartitionSize(df: DataFrame):
+    for partition, rows in enumerate(df.rdd.mapPartitions(count_rows).collect()):
+        print(f'Partition {partition} has {rows} rows')
 
 # the spark session
 spark = SparkSession.builder.master("spark://spark:7077") \
@@ -11,18 +19,18 @@ spark = SparkSession.builder.master("spark://spark:7077") \
 path_to_data = "/app/stack/"
 
 answers = spark.read.csv(f"{path_to_data}Answers.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-badges = spark.read.csv(f"{path_to_data}Badges.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-comments = spark.read.csv(f"{path_to_data}Comments.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
 questions = spark.read.csv(f"{path_to_data}Questions.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-questionsLinks = spark.read.csv(f"{path_to_data}QuestionsLinks.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-questionsTags = spark.read.csv(f"{path_to_data}QuestionsTags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-tags = spark.read.csv(f"{path_to_data}Tags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-users = spark.read.csv(f"{path_to_data}Users.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-votes = spark.read.csv(f"{path_to_data}Votes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+comments = spark.read.csv(f"{path_to_data}Comments.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# badges = spark.read.csv(f"{path_to_data}Badges.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# questionsLinks = spark.read.csv(f"{path_to_data}QuestionsLinks.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# questionsTags = spark.read.csv(f"{path_to_data}QuestionsTags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# tags = spark.read.csv(f"{path_to_data}Tags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# users = spark.read.csv(f"{path_to_data}Users.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# votes = spark.read.csv(f"{path_to_data}Votes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
+# votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
 
 
-#> write the data to basic parquet
+# write the data to basic parquet
 """
 answers.write.parquet(f'{path_to_data}answers_parquet')
 badges.write.parquet(f'{path_to_data}badges_parquet')
@@ -36,18 +44,7 @@ votes.write.parquet(f'{path_to_data}votes_parquet')
 votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
 """
 
-
-#> Sort() e depois escrita
-answers_sorted = answers.sort('CreationDate')
-questions_sorted = questions.sort('CreationDate')
-comments_sorted = comments.sort('CreationDate')
-
-answers_sorted.write.parquet(f'{path_to_data}answers_sorted_parquet')
-questions_sorted.write.parquet(f'{path_to_data}questions_sorted_parquet')
-comments_sorted.write.parquet(f'{path_to_data}comments_sorted_parquet')
-
-
-#> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (PIOROU DE 11 PARA 16 SECS)
+#> Adicionar uma coluna (YEAR) para depois fazer partição por essa coluna mais abrangente (PIOROU DE 11 PARA 16 SECS) #! Mas é utilizado de maneira nova agora
 """
 answers = answers.withColumn('creationyear', year(answers.CreationDate))
 answers.write.parquet(f'{path_to_data}answers_parquet_part_year', partitionBy='creationyear')
@@ -57,6 +54,29 @@ comments = comments.withColumn('creationyear', year(comments.CreationDate))
 comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy='creationyear')
 """
 
+#> Using repartitionByRange (testing)
+answers_r = answers.repartitionByRange(20, 'CreationDate')
+questions_r = questions.repartitionByRange(20, 'CreationDate')
+comments_r = comments.repartitionByRange(20, 'CreationDate')
+answers_r.write.parquet(f'{path_to_data}answers_parquet_range_rep')
+questions_r.write.parquet(f'{path_to_data}questions_parquet_range_rep')
+comments_r.write.parquet(f'{path_to_data}comments_parquet_range_rep')
+
+
+
+
+
+
+#> Sort() e depois escrita (tbm nao se notou nada)
+"""
+answers_sorted = answers.sort('CreationDate')
+questions_sorted = questions.sort('CreationDate')
+comments_sorted = comments.sort('CreationDate')
+
+answers_sorted.write.parquet(f'{path_to_data}answers_sorted_parquet')
+questions_sorted.write.parquet(f'{path_to_data}questions_sorted_parquet')
+comments_sorted.write.parquet(f'{path_to_data}comments_sorted_parquet')
+"""
 
 
 #> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (YEAR_MONTH) (AINDA ASSIM CRIA MUITAS PARTIÇÕES, E PIORA EXEC_TIME)

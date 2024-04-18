@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import count, lower, udf, broadcast
-from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months
+from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months, year
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -33,20 +33,18 @@ def showPartitionSize(df: DataFrame):
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
 
-    six_months_ago = current_timestamp() - expr(f"INTERVAL {interval}")
-    
-    # Filter and aggregate the questions, answers, and comments dataframes #! Ver melhor o que faz o count(*)
-    questions_agg = questions.filter((questions["creationdate"] >= six_months_ago) & (questions["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("qcount"))
-    answers_agg = answers.filter((answers["creationdate"] >= six_months_ago) & (answers["creationdate"] <= current_date())).groupBy("owneruserid").agg(count("*").alias("acount"))
-    comments_agg = comments.filter((comments["creationdate"] >= six_months_ago) & (comments["creationdate"] <= current_date())).groupBy("userid").agg(count("*").alias("ccount"))
+    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
 
-    # DEBUG
-    # questions_agg.explain()
-    # answers_agg.explain()
-    # comments_agg.explain()
-    # showPartitionSize(questions_agg)
-    # showPartitionSize(answers_agg)
-    # showPartitionSize(comments_agg)
+    # Filter antigo e mais simples sem utilização da nova coluna "year" #> removi o filter creationdate < now() porque não remove qualquer valor dado que não devem existir valores futuros (não sei bem se teve impacto, mas a primeira vez que testei isto depois de mudar, deu 9 secs, mas n voltou a dar)
+    # questions_agg = questions.filter((questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
+    # answers_agg = answers.filter((answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
+    # comments_agg = comments.filter((comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
+
+    # Filter and aggregate the questions, answers, and comments dataframes #> resultou numa melhoria de 11 secs para 8 secs
+    lower_interval_year = year(lower_interval)
+    questions_agg = questions.filter((questions["creationyear"] >= lower_interval_year) & (questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
+    answers_agg = answers.filter((answers["creationyear"] >= lower_interval_year) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
+    comments_agg = comments.filter((comments["creationyear"] >= lower_interval_year) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
 
     # Perform the joins
     result_df = users.select(col('id'), col('displayname'))\
@@ -78,7 +76,7 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
           .orderBy("window")
 
 
-
+@timeit
 def main():
     spark = SparkSession.builder \
             .master("spark://spark:7077") \
@@ -90,17 +88,15 @@ def main():
 
     data_to_path = "/app/stack/"
 
-    answers = spark.read.parquet(f'{data_to_path}answers_parquet')
-    answers = answers.sort('creationdate')# Apos o sort são criadas bastante mais partições
-    # answers_sorted = spark.read.parquet(f'{data_to_path}answers_parquet_part_year')
-
-    comments = spark.read.parquet(f'{data_to_path}comments_parquet')
-    comments = comments.sort('creationdate')
-    # comments_sorted = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
-
-    questions = spark.read.parquet(f'{data_to_path}questions_parquet')
-    questions = questions.sort('creationdate')
-    # questions_sorted = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
+    # answers = spark.read.parquet(f'{data_to_path}answers_parquet')
+    # comments = spark.read.parquet(f'{data_to_path}comments_parquet')
+    # questions = spark.read.parquet(f'{data_to_path}questions_parquet')
+    # answers = answers.repartitionByRange(3, 'creationdate')
+    # comments = comments.repartitionByRange(3, 'creationdate')
+    # questions = questions.repartitionByRange(3, 'creationdate')
+    answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_year') #! Requer a nova coluna "year" escrita para ficheiros parquet
+    comments = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
+    questions = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
 
     badges = spark.read.parquet(f'{data_to_path}badges_parquet')
     questionsLinks = spark.read.parquet(f'{data_to_path}questionsLinks_parquet')
@@ -111,14 +107,6 @@ def main():
     votesTypes = spark.read.parquet(f'{data_to_path}votesTypes_parquet') # tabela estática
 
     
-    ##> Tentativa de partitionar por creationdate mas sem a criação de um ficheiro por cada valor unico da data.
-    #! UNTESTED
-    # answers_sorted = answers.orderBy('creationdate')
-    # showPartitionSize(answers_sorted)
-    # answers_sorted = answers_sorted.repartition(8)
-    # showPartitionSize(answers_sorted)
-
-
     # Q1
     @timeit
     def w1():
@@ -170,7 +158,6 @@ def main():
 
     else:
         locals()[sys.argv[1]]()
-
 
 
 
