@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import count, lower, udf, broadcast
-from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months, year
+from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months, year, month, concat
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -46,8 +46,14 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     answers_agg = answers.filter((answers["creationyear"] >= lower_interval_year) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
     comments_agg = comments.filter((comments["creationyear"] >= lower_interval_year) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
 
+    # Filter and aggregate the questions, answers, and comments dataframes #> comparativamente à técnica com o ano como coluna, não se nota melhorias (8.7 secs em média)
+    # lower_interval_year_month = concat(year(lower_interval), lit('-'), month(lower_interval))
+    # questions_agg = questions.filter((questions["creationyearmonth"] >= lower_interval_year_month) & (questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
+    # answers_agg = answers.filter((answers["creationyearmonth"] >= lower_interval_year_month) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
+    # comments_agg = comments.filter((comments["creationyearmonth"] >= lower_interval_year_month) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
+
     # Perform the joins
-    result_df = users.select(col('id'), col('displayname'))\
+    result_df = users\
         .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
         .join(answers_agg, users["id"] == answers_agg["owneruserid"], "left") \
         .join(comments_agg, users["id"] == comments_agg["userid"], "left") \
@@ -83,26 +89,36 @@ def main():
             .config("spark.eventLog.enabled", "true") \
             .config("spark.eventLog.dir", "/tmp/spark-events") \
             .config("spark.executor.memory", "1g") \
+            .config("spark.sql.adaptive.enabled", "true") \
             .getOrCreate()
-            # .config("spark.sql.adaptive.enabled", "true") \
+            # .config("spark.executor.instances", 3) \
+            # .config("spark.driver.memory", "8g") \
 
     data_to_path = "/app/stack/"
 
+    ##* RepartitionByRange
     # answers = spark.read.parquet(f'{data_to_path}answers_parquet')
     # comments = spark.read.parquet(f'{data_to_path}comments_parquet')
     # questions = spark.read.parquet(f'{data_to_path}questions_parquet')
-    # answers = answers.repartitionByRange(3, 'creationdate')
-    # comments = comments.repartitionByRange(3, 'creationdate')
-    # questions = questions.repartitionByRange(3, 'creationdate')
-    answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_year') #! Requer a nova coluna "year" escrita para ficheiros parquet
+    # answers = answers.repartitionByRange('creationdate')
+    # comments = comments.repartitionByRange('creationdate')
+    # questions = questions.repartitionByRange('creationdate')
+    # print(answers.rdd.getNumPartitions())
+    ##* Year partitioning
+    answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_year')
     comments = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
     questions = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
+    ##* Year-month partitioning
+    # answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_yearmonth')
+    # comments = spark.read.parquet(f'{data_to_path}comments_parquet_part_yearmonth')
+    # questions = spark.read.parquet(f'{data_to_path}questions_parquet_part_yearmonth')
+    
+    users = spark.read.parquet(f'{data_to_path}users_parquet')
 
     badges = spark.read.parquet(f'{data_to_path}badges_parquet')
     questionsLinks = spark.read.parquet(f'{data_to_path}questionsLinks_parquet')
     questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
     tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
-    users = spark.read.parquet(f'{data_to_path}users_parquet')
     votes = spark.read.parquet(f'{data_to_path}votes_parquet')
     votesTypes = spark.read.parquet(f'{data_to_path}votesTypes_parquet') # tabela estática
 
@@ -148,13 +164,13 @@ def main():
     ## Maneira dinamica de chamar as queries (mas ainda tenho de ver como funciona caches e assim neste caso. Talvez precise de englobar as queries em workloads)
     if len(sys.argv) < 2:
         print("Running all queries...")
-        q1(users, questions, answers, comments, '6 months')
-        q2()
-        q3()
-        q4(badges, "1 minute")
+        w1()
+        w2()
+        w3()
+        w4()
     elif sys.argv[1] == "t":
-        # !DEBUG
-        print("DEBUGGING!")
+        print("TEST DEBUGGING!")
+
 
     else:
         locals()[sys.argv[1]]()
