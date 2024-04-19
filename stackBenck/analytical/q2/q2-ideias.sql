@@ -42,7 +42,7 @@ ORDER BY 1, 2;
 -- CREATE INDEX idx_votes_creationdate ON votes (creationdate);
 -- DROP INDEX IF EXISTS idx_votes_creationdate;
 
---* Este indice ajuda no filtro de users que na CTE buckets, que é uma operação bastante pesada segundo o EXPLAIN ANALYZE (com 4 secs). Melhora de 5.9 para 5.7
+--* Este indice ajuda no filtro de users que na CTE buckets, que é uma operação bastante pesada segundo o EXPLAIN ANALYZE (com 4 secs). Melhora de 5.9 para 5.7 --! Para se fazer uma análise mais interessante, fazer-se-ia o explain analyze com os indices
 -- CREATE INDEX idx_users_creationdate ON users (creationdate);
 -- DROP INDEX IF EXISTS idx_users_creationdate;
 
