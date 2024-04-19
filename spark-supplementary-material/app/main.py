@@ -52,14 +52,22 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     # answers_agg = answers.filter((answers["creationyearmonth"] >= lower_interval_year_month) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
     # comments_agg = comments.filter((comments["creationyearmonth"] >= lower_interval_year_month) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
 
-    # Perform the joins
+    # Perform the joins #> troquei a ordem dos joins(questions_agg e answers_agg) e a query parece que está uns ms mais rapida
     result_df = users\
-        .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
         .join(answers_agg, users["id"] == answers_agg["owneruserid"], "left") \
+        .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
         .join(comments_agg, users["id"] == comments_agg["userid"], "left") \
         .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
         .orderBy(col('total').desc())\
         .limit(100)
+    #! os resultados da query de baixo não mostram o user Comunity, ainda não sei bem pq, mas a query de baixo tem a utilização de um hint(broadcast)
+    # result_df = answers_agg\
+    #     .join(questions_agg, answers_agg["owneruserid"] == questions_agg["owneruserid"], "full") \
+    #     .join(comments_agg, answers_agg["owneruserid"] == comments_agg["userid"], "full").hint("broadcast") \
+    #     .join(users, answers_agg["owneruserid"] == users["id"] , "right") \
+    #     .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
+    #     .orderBy(col('total').desc())\
+    #     .limit(100)
 
     # result_df.show()
     return result_df.collect()
@@ -91,8 +99,9 @@ def main():
             .config("spark.executor.memory", "1g") \
             .config("spark.sql.adaptive.enabled", "true") \
             .getOrCreate()
+            # .config("spark.driver.memory", "4g") \
+            # .config("spark.executor.cores", "2") \
             # .config("spark.executor.instances", 3) \
-            # .config("spark.driver.memory", "8g") \
 
     data_to_path = "/app/stack/"
 
