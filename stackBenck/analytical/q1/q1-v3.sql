@@ -17,3 +17,7 @@ LEFT JOIN (
 ) c ON c.userid = u.id
 ORDER BY total DESC
 LIMIT 100;
+
+-- CREATE INDEX idx_comments_creationdate ON comments (creationdate);
+-- CREATE INDEX idx_questions_creationdate ON questions (creationdate);
+-- CREATE INDEX idx_answers_creationdate ON answers (creationdate);

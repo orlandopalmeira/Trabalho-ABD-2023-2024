@@ -42,7 +42,7 @@ ORDER BY 1, 2;
 --$$ LANGUAGE plpgsql;
 
 --CREATE TRIGGER trigger_update_buckets_mv
---AFTER INSERT OR DELETE ON users
+--AFTER INSERT OR DELETE OR UPDATE ON users
 --FOR EACH STATEMENT
 --EXECUTE FUNCTION update_buckets_mv();
 
