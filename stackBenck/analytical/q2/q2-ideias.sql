@@ -1,9 +1,10 @@
+-- Active: 1708441413272@@127.0.0.1@5432@stack
 WITH buckets AS (
     SELECT year,
         generate_series(0, (
-            SELECT cast(max(reputation) as int)
-            FROM users
-            WHERE extract(year FROM creationdate) = year
+            SELECT cast(max(uy.reputation) as int)
+            FROM users_years uy
+            WHERE uy.c_year = year
         ), 5000) AS reputation_range
     FROM (
         SELECT generate_series(2008, extract(year FROM NOW())) AS year
@@ -32,6 +33,10 @@ GROUP BY 1, 2
 ORDER BY 1, 2;
 
 
+
+
+--> Progresso:
+
 --! Os valores mencionados são locais. É preciso tirar valores da VM para se por em relatorio
 
 --! Talvez ver melhor se isto não é mesmo necessário fazendo uns testes com diferentes argumentos
@@ -48,8 +53,38 @@ ORDER BY 1, 2;
 
 
 
---* Pensei nesta mat view mas depois vi que ela é muito insignificante, uma vez que é muito rápida
--- CREATE MATERIALIZED VIEW vote_types_acceptedbyoriginator AS
--- SELECT *
--- FROM votestypes
--- WHERE name = 'AcceptedByOriginator';
+--* Fazer uma mat view mas apenas para a extração dos anos dos users e assim ela so tinha de ser atualizada com INSERTS OU DELETES
+--* Melhora o tempo de 5.7 para 3.7
+-- CREATE MATERIALIZED VIEW users_years AS
+-- SELECT id, reputation, extract(year FROM creationdate) AS c_year
+--     FROM users;
+-- DROP MATERIALIZED VIEW IF EXISTS users_years CASCADE;
+
+--* Melhora o tempo de 3.7 para 2.2
+-- CREATE INDEX year_idx ON users_years (c_year);
+-- DROP INDEX IF EXISTS year_idx;
+
+--* Trigger para atualizar a mat view users_years
+--! NAO TESTADO
+-- CREATE OR REPLACE FUNCTION update_users_years()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     IF TG_OP = 'INSERT' THEN
+--         INSERT INTO users_years (id, reputation, c_year)
+--         VALUES (NEW.id, NEW.reputation, extract(year FROM NEW.creationdate));
+--     ELSIF TG_OP = 'DELETE' THEN
+--         DELETE FROM users_years
+--         WHERE id = OLD.id;
+--     ELSIF TG_OP = 'UPDATE' THEN
+--         UPDATE users_years
+--         SET reputation = NEW.reputation, c_year = extract(year FROM NEW.creationdate)
+--         WHERE id = NEW.id;
+--     END IF;
+--     RETURN NULL;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- CREATE TRIGGER update_users_years_trigger
+-- AFTER INSERT OR DELETE ON users
+-- FOR EACH ROW
+-- EXECUTE FUNCTION update_users_years();
