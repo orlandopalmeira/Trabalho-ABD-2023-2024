@@ -52,15 +52,16 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     # answers_agg = answers.filter((answers["creationyearmonth"] >= lower_interval_year_month) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
     # comments_agg = comments.filter((comments["creationyearmonth"] >= lower_interval_year_month) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
 
-    # Perform the joins #> troquei a ordem dos joins(questions_agg e answers_agg) e a query parece que está uns ms mais rapida
+    # Perform the joins #> troquei a ordem dos joins(questions_agg e answers_agg) e a query parece que está uns ms mais rapida. Também adicionei broadcast hints para tabelas mais pequenas. #! Talvez devesse ter outro formato com o df.hint("broadcast")
     result_df = users\
-        .join(answers_agg, users["id"] == answers_agg["owneruserid"], "left") \
-        .join(questions_agg, users["id"] == questions_agg["owneruserid"], "left") \
-        .join(comments_agg, users["id"] == comments_agg["userid"], "left") \
+        .join(broadcast(answers_agg), users["id"] == answers_agg["owneruserid"], "left") \
+        .join(broadcast(questions_agg), users["id"] == questions_agg["owneruserid"], "left") \
+        .join(broadcast(comments_agg), users["id"] == comments_agg["userid"], "left") \
         .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
         .orderBy(col('total').desc())\
         .limit(100)
-    #! os resultados da query de baixo não mostram o user Comunity, ainda não sei bem pq, mas a query de baixo tem a utilização de um hint(broadcast)
+    #! os resultados da query de baixo não mostram o user Comunity, (porque o join com os users é feito pelo id das answers e se não houver id das answers, perde-se a junção), mas a query de baixo tem a utilização de um hint(broadcast)
+    #! Provavelmente é para esquecer isto, só se merecer alguma atenção no sentido que se tentou fazer isto
     # result_df = answers_agg\
     #     .join(questions_agg, answers_agg["owneruserid"] == questions_agg["owneruserid"], "full") \
     #     .join(comments_agg, answers_agg["owneruserid"] == comments_agg["userid"], "full").hint("broadcast") \
