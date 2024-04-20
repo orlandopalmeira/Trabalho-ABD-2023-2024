@@ -73,6 +73,72 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     # result_df.show()
     return result_df.collect()
 
+@timeit
+def q1_clean(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
+    #* versão baseada va q1-v4
+    
+    #> Versão com a coluna creation_year
+    questions_selected = questions.select("owneruserid", "creationdate", "creationyear")
+    answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
+    comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate", "creationyear")
+    ##
+    # questions_selected = questions.select("owneruserid", "creationdate")
+    # answers_selected = answers.select("owneruserid", "creationdate")
+    # comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
+
+    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
+    lower_interval_year = year(lower_interval)
+
+    interactions = (
+        questions_selected
+        .union(answers_selected)
+        .union(comments_selected)
+        # .filter(col("creationdate").between(lower_interval, current_timestamp()))
+        .filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
+        .groupBy("owneruserid")
+        .agg(count("*").alias("interaction_count"))
+    )
+
+    result_df = (
+        users
+        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
+        .select(
+            users["id"],
+            users["displayname"],
+            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
+        )
+        .orderBy(col("total").desc())
+        .limit(100)
+    )
+    
+    return result_df.collect()
+
+@timeit
+def q1_cache(users: DataFrame, cache: DataFrame, interval: StringType = "6 months",) -> List[Row]:
+    #* versão baseada va q1-v4
+    
+    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
+    lower_interval_year = year(lower_interval)
+
+    interactions = (
+        cache.filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
+        .groupBy("owneruserid")
+        .agg(count("*").alias("interaction_count"))
+    )
+
+    result_df = (
+        users
+        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
+        .select(
+            users["id"],
+            users["displayname"],
+            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
+        )
+        .orderBy(col("total").desc())
+        .limit(100)
+    )
+    
+    return result_df.collect()
 
 @timeit
 # def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, interval: StringType = "5 years", bucketInterval : IntegerType = 5000):
@@ -106,6 +172,10 @@ def main():
 
     data_to_path = "/app/stack/"
 
+    ##* RepartitionByRange WRITTEN
+    # answers = spark.read.parquet(f'{data_to_path}answers_parquet_range_rep')
+    # comments = spark.read.parquet(f'{data_to_path}comments_parquet_range_rep')
+    # questions = spark.read.parquet(f'{data_to_path}questions_parquet_range_rep')
     ##* RepartitionByRange
     # answers = spark.read.parquet(f'{data_to_path}answers_parquet')
     # comments = spark.read.parquet(f'{data_to_path}comments_parquet')
@@ -136,7 +206,34 @@ def main():
     # Q1
     @timeit
     def w1():
-        q1(users, questions, answers, comments, '6 months')
+        q1_clean(users, questions, answers, comments, '6 months')
+
+    @timeit
+    def w1_avg():
+        q1_clean(users, questions, answers, comments, '6 months')
+        q1_clean(users, questions, answers, comments, '6 months')
+        q1_clean(users, questions, answers, comments, '6 months')
+        q1_clean(users, questions, answers, comments, '6 months')
+        q1_clean(users, questions, answers, comments, '6 months')
+
+    @timeit
+    def w1_cache():
+        #> Versão com a coluna creation_year
+        questions_selected = questions.select("owneruserid", "creationdate", "creationyear")
+        answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
+        comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate", "creationyear")
+
+        interactions = (
+            questions_selected
+            .union(answers_selected)
+            .union(comments_selected)
+        ).cache()
+
+        q1_cache(users, interactions, '6 months')
+        q1_cache(users, interactions, '6 months')
+        q1_cache(users, interactions, '6 months')
+        q1_cache(users, interactions, '6 months')
+        q1_cache(users, interactions, '6 months')
 
     # Q2
     @timeit

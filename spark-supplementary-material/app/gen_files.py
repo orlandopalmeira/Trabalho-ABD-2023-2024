@@ -50,6 +50,14 @@ questions.write.parquet(f'{path_to_data}questions_parquet_part_year', partitionB
 comments = comments.withColumn('creationyear', year(comments.CreationDate))
 comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy='creationyear')
 
+#> Using repartitionByRange (nao se notou nenhuma melhoria)
+# answers_r = answers.repartitionByRange('CreationDate')
+# questions_r = questions.repartitionByRange('CreationDate')
+# comments_r = comments.repartitionByRange('CreationDate')
+# answers_r.write.parquet(f'{path_to_data}answers_parquet_range_rep')
+# questions_r.write.parquet(f'{path_to_data}questions_parquet_range_rep')
+# comments_r.write.parquet(f'{path_to_data}comments_parquet_range_rep')
+
 
 #> Adicionar uma coluna para depois fazer partição por essa coluna mais abrangente (YEAR_MONTH) (AINDA ASSIM CRIA MUITAS PARTIÇÕES, E PIORA EXEC_TIME)
 # answers = answers.withColumn('creationyearmonth', 
@@ -71,15 +79,7 @@ comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy=
 
 
 
-#> Using repartitionByRange (testing)
-"""
-answers_r = answers.repartitionByRange(20, 'CreationDate')
-questions_r = questions.repartitionByRange(20, 'CreationDate')
-comments_r = comments.repartitionByRange(20, 'CreationDate')
-answers_r.write.parquet(f'{path_to_data}answers_parquet_range_rep')
-questions_r.write.parquet(f'{path_to_data}questions_parquet_range_rep')
-comments_r.write.parquet(f'{path_to_data}comments_parquet_range_rep')
-"""
+
 
 
 
