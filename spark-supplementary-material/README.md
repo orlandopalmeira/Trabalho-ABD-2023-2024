@@ -1,8 +1,8 @@
 # Passo a passo para fazer o setup inicial local do cluster Spark
 
-- Levantar cluster normalmente.
+- Deploy the cluster (comando em baixo).
 - Passar os csv para uma pasta app/stack/
-- Correr a script `docker exec spark-spark-1 python3 export_to_parquet.py` para criar os ficheiros parquet (pode demorar um pouco).
+- Correr a script `docker exec spark-spark-1 python3 gen_files.py` para criar os ficheiros parquet (pode demorar um pouco).
 - De seguida, é correr a script `docker exec spark-spark-1 python3 main.py` para correr o job principal como normalmente.
 
 # Comandos úteis
