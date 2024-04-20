@@ -1,0 +1,75 @@
+                                                                                                           QUERY PLAN                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=4306919.21..4307019.21 rows=40000 width=44) (actual time=2756.499..2786.773 rows=1799 loops=1)
+   Sort Key: buckets.year, buckets.reputation_range
+   Sort Method: quicksort  Memory: 133kB
+   Buffers: shared hit=11790 read=529175, temp read=21714 written=21786
+   ->  HashAggregate  (cost=4303461.67..4303861.67 rows=40000 width=44) (actual time=2754.514..2785.156 rows=1799 loops=1)
+         Group Key: buckets.year, buckets.reputation_range
+         Batches: 1  Memory Usage: 1681kB
+         Buffers: shared hit=11787 read=529175, temp read=21714 written=21786
+         ->  Merge Left Join  (cost=4188170.67..4286063.36 rows=2319775 width=40) (actual time=2710.487..2765.346 rows=88975 loops=1)
+               Merge Cond: ((buckets.year = (EXTRACT(year FROM users.creationdate))) AND (((buckets.reputation_range)::double precision) = ((floor(((users.reputation / 5000))::double precision) * '5000'::double precision))))
+               Buffers: shared hit=11787 read=529175, temp read=21714 written=21786
+               ->  Sort  (cost=3410409.20..3412909.20 rows=1000000 width=36) (actual time=753.039..753.221 rows=1799 loops=1)
+                     Sort Key: buckets.year, ((buckets.reputation_range)::double precision)
+                     Sort Method: quicksort  Memory: 133kB
+                     Buffers: shared hit=5108 read=12164
+                     ->  Subquery Scan on buckets  (cost=0.00..3256060.36 rows=1000000 width=36) (actual time=396.847..752.542 rows=1799 loops=1)
+                           Buffers: shared hit=5103 read=12164
+                           ->  ProjectSet  (cost=0.00..3256060.36 rows=1000000 width=36) (actual time=396.843..752.375 rows=1799 loops=1)
+                                 Buffers: shared hit=5103 read=12164
+                                 ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32) (actual time=391.180..391.199 rows=17 loops=1)
+                                       ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=391.144..391.145 rows=1 loops=1)
+                                 SubPlan 1
+                                   ->  Aggregate  (cost=3251.04..3251.05 rows=1 width=4) (actual time=21.232..21.233 rows=1 loops=17)
+                                         Buffers: shared hit=5103 read=12164
+                                         ->  Index Scan using year_idx on users_years uy  (cost=0.43..3031.52 rows=87806 width=4) (actual time=0.024..17.195 rows=87806 loops=17)
+                                               Index Cond: (c_year = (generate_series('2008'::numeric, EXTRACT(year FROM now()))))
+                                               Buffers: shared hit=5103 read=12164
+               ->  Sort  (cost=777761.47..777993.44 rows=92791 width=16) (actual time=1957.364..1995.466 rows=87812 loops=1)
+                     Sort Key: (EXTRACT(year FROM users.creationdate)), ((floor(((users.reputation / 5000))::double precision) * '5000'::double precision))
+                     Sort Method: external sort  Disk: 4648kB
+                     Buffers: shared hit=6679 read=517011, temp read=21714 written=21786
+                     ->  Gather  (cost=721584.54..770105.42 rows=92791 width=16) (actual time=1731.665..1920.623 rows=87812 loops=1)
+                           Workers Planned: 2
+                           Workers Launched: 2
+                           Buffers: shared hit=6679 read=517011, temp read=20553 written=20624
+                           ->  Parallel Hash Semi Join  (cost=720584.54..759826.32 rows=38663 width=16) (actual time=1715.618..1877.436 rows=29271 loops=3)
+                                 Hash Cond: (users.id = a.owneruserid)
+                                 Buffers: shared hit=6679 read=517011, temp read=20553 written=20624
+                                 ->  Parallel Seq Scan on users  (cost=0.00..31379.57 rows=621957 width=16) (actual time=0.023..58.785 rows=497565 loops=3)
+                                       Buffers: shared read=25160
+                                 ->  Parallel Hash  (cost=719417.79..719417.79 rows=93340 width=8) (actual time=1714.840..1714.847 rows=127057 loops=3)
+                                       Buckets: 524288 (originally 262144)  Batches: 1 (originally 1)  Memory Usage: 20992kB
+                                       Buffers: shared hit=6615 read=491851, temp read=20553 written=20624
+                                       ->  Parallel Hash Semi Join  (cost=208990.65..719417.79 rows=93340 width=8) (actual time=1535.383..1683.668 rows=127057 loops=3)
+                                             Hash Cond: (a.id = v.postid)
+                                             Buffers: shared hit=6615 read=491851, temp read=20553 written=20624
+                                             ->  Parallel Seq Scan on answers a  (cost=0.00..439679.10 rows=1844710 width=12) (actual time=0.054..458.786 rows=1475768 loops=3)
+                                                   Buffers: shared read=421232
+                                             ->  Parallel Hash  (cost=204801.69..204801.69 rows=255277 width=8) (actual time=844.271..844.275 rows=127057 loops=3)
+                                                   Buckets: 262144  Batches: 8  Memory Usage: 3968kB
+                                                   Buffers: shared hit=6615 read=70619, temp written=1184
+                                                   ->  Hash Join  (cost=1.63..204801.69 rows=255277 width=8) (actual time=152.594..818.629 rows=127057 loops=3)
+                                                         Hash Cond: (v.votetypeid = vt.id)
+                                                         Buffers: shared hit=6615 read=70619
+                                                         ->  Parallel Index Scan using idx_votes_creationdate on votes v  (cost=0.44..192579.11 rows=3573881 width=10) (actual time=152.501..608.346 rows=2868446 loops=3)
+                                                               Index Cond: (creationdate >= (now() - '5 years'::interval))
+                                                               Buffers: shared hit=6591 read=70618
+                                                         ->  Hash  (cost=1.18..1.18 rows=1 width=2) (actual time=0.036..0.038 rows=1 loops=3)
+                                                               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                               Buffers: shared hit=2 read=1
+                                                               ->  Seq Scan on votestypes vt  (cost=0.00..1.18 rows=1 width=2) (actual time=0.030..0.032 rows=1 loops=3)
+                                                                     Filter: ((name)::text = 'AcceptedByOriginator'::text)
+                                                                     Rows Removed by Filter: 13
+                                                                     Buffers: shared hit=2 read=1
+ Planning:
+   Buffers: shared hit=556 read=68
+ Planning Time: 1.931 ms
+ JIT:
+   Functions: 122
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 4.575 ms, Inlining 265.371 ms, Optimization 346.404 ms, Emission 236.977 ms, Total 853.328 ms
+ Execution Time: 2810.224 ms
+(72 rows)
