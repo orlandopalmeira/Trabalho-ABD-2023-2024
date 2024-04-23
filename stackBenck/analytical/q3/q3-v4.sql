@@ -1,11 +1,16 @@
-SELECT t.tagname, ROUND(AVG(total), 3) AS average_total, COUNT(*) AS tag_count
+WITH questionstags_tagid as 
+    (SELECT tagid
+    FROM questionstags
+    GROUP BY tagid
+    HAVING count(*) > 10)
+SELECT t.tagname, round(avg(total), 3), count(*)
 FROM (
-    SELECT qt.tagid, COUNT(*) AS total
+    SELECT qt.tagid, qt.questionid, count(*) AS total
     FROM questionstags qt
-    JOIN answers a ON a.parentid = qt.questionid
+    inner join questionstags_tagid qtt on qtt.tagid = qt.tagid
+    LEFT JOIN answers a ON a.parentid = qt.questionid
     GROUP BY qt.tagid, qt.questionid
-    HAVING COUNT(*) > 10
-) AS tag_counts
-JOIN tags t ON t.id = tag_counts.tagid
+)
+LEFT JOIN tags t ON t.id = tagid
 GROUP BY t.tagname
-ORDER BY average_total DESC, tag_count DESC, t.tagname;
+ORDER BY 2 DESC, 3 DESC, tagname;
