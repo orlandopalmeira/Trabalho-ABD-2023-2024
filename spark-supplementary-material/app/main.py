@@ -1,6 +1,6 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
-from pyspark.sql.functions import count, lower, udf, broadcast
+from pyspark.sql.functions import round as spark_round, avg, count, lower, udf, broadcast, desc, asc
 from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months, year, month, concat
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
@@ -146,9 +146,59 @@ def q2():
     pass
 
 @timeit
-# def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
-def q3():
-    pass
+def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
+
+# CREATE MATERIALIZED VIEW TagQuestionCounts AS
+# SELECT qt.tagid, qt.questionid, COUNT(*) AS total
+# FROM questionstags qt
+# LEFT JOIN answers a ON a.parentid = qt.questionid
+# GROUP BY qt.tagid, qt.questionid
+# 
+# WITH FilteredTags AS (
+#     SELECT tagid
+#     FROM TagQuestionCounts
+#     GROUP BY tagid
+#     HAVING COUNT(*) > 10
+# )
+# 
+# SELECT t.tagname, ROUND(AVG(tqc.total), 3) AS avg_total, COUNT(*) AS tag_count
+# FROM TagQuestionCounts tqc
+# JOIN FilteredTags ft ON ft.tagid = tqc.tagid
+# LEFT JOIN tags t ON t.id = tqc.tagid
+# GROUP BY t.tagname
+# ORDER BY avg_total DESC, tag_count DESC, t.tagname;
+
+    # spark = SparkSession.builder \
+    # .appName("MaterializedViewUsage") \
+    # .getOrCreate()
+
+    tag_question_counts = questionsTags.alias("qt") \
+                             .join(answers.alias("a"), questionsTags["questionid"] == answers["parentid"], "left") \
+                             .groupBy("qt.tagid", "qt.questionid") \
+                             .agg(count("*").alias("total"))
+
+    tag_question_counts.write.mode("overwrite").parquet("tag_question_counts.parquet")
+
+    # Read the materialized view from the file
+    # tag_question_counts = spark.read.parquet("tag_question_counts.parquet")
+    
+    # Create the FilteredTags view
+    filtered_tags = tag_question_counts.groupBy("tagid").agg(count("*").alias("count")) \
+                                       .filter("count > 10") \
+                                       .select("tagid")
+    
+    # Perform the final aggregation
+    result_df = tag_question_counts.alias("tqc") \
+                                   .join(filtered_tags.alias("ft"), "tagid", "inner") \
+                                   .join(tags.alias("t"), tag_question_counts["tagid"] == tags["id"], "left") \
+                                   .groupBy("t.tagname") \
+                                   .agg(spark_round(avg("tqc.total"), 3).alias("avg_total"), count("*").alias("tag_count")) \
+                                   .orderBy("avg_total", "tag_count", "t.tagname").sort(desc("avg_total"), desc("tag_count"), asc("t.tagname"))
+
+    result_df.write.csv("res-q3.csv")
+
+    return result_df.collect()
+
 
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
@@ -243,7 +293,7 @@ def main():
     # Q3
     @timeit
     def w3():
-        q3()
+        q3(tags, questionsTags, answers, 10)
 
     # Q4
     @timeit
