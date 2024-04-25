@@ -177,7 +177,7 @@ def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLi
                              .groupBy("qt.tagid", "qt.questionid") \
                              .agg(count("*").alias("total"))
 
-    tag_question_counts.write.mode("overwrite").parquet("tag_question_counts.parquet")
+    tag_question_counts.write.mode("overwrite").parquet("stack/tag_question_counts.parquet")
 
     # Read the materialized view from the file
     # tag_question_counts = spark.read.parquet("tag_question_counts.parquet")
@@ -195,10 +195,24 @@ def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLi
                                    .agg(spark_round(avg("tqc.total"), 3).alias("avg_total"), count("*").alias("tag_count")) \
                                    .orderBy("avg_total", "tag_count", "t.tagname").sort(desc("avg_total"), desc("tag_count"), asc("t.tagname"))
 
-    result_df.write.csv("res-q3.csv")
+    result_df.write.csv("stack/res-q3.csv")
 
     return result_df.collect()
 
+@timeit
+def q3_mv(mat_view: DataFrame, inferiorLimit: IntegerType = 10):
+    # q3 com vista materializada
+    result = (
+        mat_view.select(
+            "tagname", 
+            col("round(avg(total), 3)").alias("round"), 
+            col("count(1)").alias("count")
+        )
+        .filter(col("tag_count") > inferiorLimit)
+        .orderBy(col("round").desc(), col("count").desc(), "tagname")
+    )
+    
+    return result.collect()
 
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
@@ -294,6 +308,36 @@ def main():
     @timeit
     def w3():
         q3(tags, questionsTags, answers, 10)
+
+    mat_view_q3 = spark.read.parquet("mv_q3.parquet")
+    @timeit
+    def w3_mv():
+        # # para criar a vista materializada em ficheiro
+        # questionsTags.createOrReplaceTempView("questionstags")
+        # answers.createOrReplaceTempView("answers")
+        # tags.createOrReplaceTempView("tags")
+        # spark.sql("""
+        #     SELECT qt.tagid, t.tagname, qt.questionid, COUNT(*) AS total
+        #     FROM questionstags qt
+        #     LEFT JOIN answers a ON a.parentid = qt.questionid
+        #     LEFT JOIN tags t ON t.id = qt.tagid
+        #     GROUP BY qt.tagid, qt.questionid, t.tagname
+        # """).createOrReplaceTempView("TagQuestionCounts")
+        # spark.sql("""
+        #     SELECT tagid, COUNT(*) as tag_count
+        #     FROM TagQuestionCounts
+        #     GROUP BY tagid
+        # """).createOrReplaceTempView("FilteredTags")
+        # result = spark.sql("""
+        #     SELECT tqc.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count, COUNT(*)
+        #     FROM TagQuestionCounts tqc
+        #     JOIN FilteredTags ft ON ft.tagid = tqc.tagid
+        #     GROUP BY tqc.tagname, ft.tag_count"""
+        # )
+        # result.write.parquet("mv_q3.parquet")
+
+        for i in range(100):
+            q3_mv(mat_view_q3, 10)
 
     # Q4
     @timeit
