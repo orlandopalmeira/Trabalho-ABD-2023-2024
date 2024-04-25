@@ -1,0 +1,61 @@
+                                                                                            QUERY PLAN                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=271509.07..271509.32 rows=100 width=22) (actual time=3705.498..3705.513 rows=100 loops=1)
+   Buffers: shared hit=20470 read=41970, temp read=336 written=337
+   ->  Sort  (cost=271509.07..275240.81 rows=1492696 width=22) (actual time=3687.862..3687.870 rows=100 loops=1)
+         Sort Key: (((count(DISTINCT questions.id) + count(DISTINCT answers.id)) + count(DISTINCT comments.id))) DESC
+         Sort Method: top-N heapsort  Memory: 32kB
+         Buffers: shared hit=20470 read=41970, temp read=336 written=337
+         ->  GroupAggregate  (cost=32052.87..214459.31 rows=1492696 width=22) (actual time=155.587..3474.727 rows=1492696 loops=1)
+               Group Key: u.id
+               Buffers: shared hit=20467 read=41970, temp read=336 written=337
+               ->  Incremental Sort  (cost=32052.87..177141.91 rows=1492696 width=26) (actual time=155.203..1589.848 rows=2013904 loops=1)
+                     Sort Key: u.id, questions.id
+                     Presorted Key: u.id
+                     Full-sort Groups: 48321  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
+                     Pre-sorted Groups: 13354  Sort Method: quicksort  Average Memory: 1468kB  Peak Memory: 1749kB
+                     Buffers: shared hit=20467 read=41970, temp read=336 written=337
+                     ->  Merge Left Join  (cost=32052.81..109970.59 rows=1492696 width=26) (actual time=154.602..1194.918 rows=2013904 loops=1)
+                           Merge Cond: (u.id = comments.userid)
+                           Buffers: shared hit=20464 read=41970, temp read=336 written=337
+                           ->  Merge Left Join  (cost=14826.60..87194.62 rows=1492696 width=22) (actual time=80.299..828.750 rows=1506035 loops=1)
+                                 Merge Cond: (u.id = answers.owneruserid)
+                                 Buffers: shared hit=18675 read=38228
+                                 ->  Merge Left Join  (cost=7363.26..75452.02 rows=1492696 width=18) (actual time=43.753..604.246 rows=1495552 loops=1)
+                                       Merge Cond: (u.id = questions.owneruserid)
+                                       Buffers: shared hit=16324 read=34262
+                                       ->  Index Scan using users_pkey on users u  (cost=0.43..63902.22 rows=1492696 width=14) (actual time=0.030..324.015 rows=1492696 loops=1)
+                                             Buffers: shared hit=13754 read=29200
+                                       ->  Sort  (cost=7362.82..7440.21 rows=30956 width=12) (actual time=43.670..50.305 rows=34478 loops=1)
+                                             Sort Key: questions.owneruserid
+                                             Sort Method: quicksort  Memory: 2885kB
+                                             Buffers: shared hit=2570 read=5062
+                                             ->  Index Scan using idx_questions_creationdate on questions  (cost=0.44..5053.82 rows=30956 width=12) (actual time=0.068..35.444 rows=34547 loops=1)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                   Buffers: shared hit=2570 read=5062
+                                 ->  Sort  (cost=7463.32..7555.59 rows=36909 width=12) (actual time=36.494..43.834 rows=35570 loops=1)
+                                       Sort Key: answers.owneruserid
+                                       Sort Method: quicksort  Memory: 2869kB
+                                       Buffers: shared hit=2351 read=3966
+                                       ->  Index Scan using idx_answers_creationdate on answers  (cost=0.44..4663.46 rows=36909 width=12) (actual time=0.072..28.618 rows=34133 loops=1)
+                                             Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                             Buffers: shared hit=2351 read=3966
+                           ->  Materialize  (cost=17225.47..17754.57 rows=105820 width=12) (actual time=74.267..116.069 rows=559334 loops=1)
+                                 Buffers: shared hit=1789 read=3742, temp read=336 written=337
+                                 ->  Sort  (cost=17225.47..17490.02 rows=105820 width=12) (actual time=74.261..84.592 rows=105286 loops=1)
+                                       Sort Key: comments.userid
+                                       Sort Method: external merge  Disk: 2688kB
+                                       Buffers: shared hit=1789 read=3742, temp read=336 written=337
+                                       ->  Index Scan using idx_comments_creationdate on comments  (cost=0.44..6584.63 rows=105820 width=12) (actual time=0.084..43.706 rows=105412 loops=1)
+                                             Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                             Buffers: shared hit=1789 read=3742
+ Planning:
+   Buffers: shared hit=316 read=61
+ Planning Time: 1.638 ms
+ JIT:
+   Functions: 41
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.639 ms, Inlining 0.000 ms, Optimization 0.684 ms, Emission 17.031 ms, Total 19.355 ms
+ Execution Time: 3727.286 ms
+(57 rows)
+

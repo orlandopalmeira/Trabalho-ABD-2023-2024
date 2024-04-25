@@ -1,0 +1,74 @@
+                                                                                     QUERY PLAN                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1593805.04..1593805.29 rows=100 width=22) (actual time=6014.559..6014.730 rows=100 loops=1)
+   Buffers: shared hit=14157 read=1174444, temp read=4643 written=776
+   ->  Sort  (cost=1593805.04..1597536.78 rows=1492696 width=22) (actual time=5749.562..5749.726 rows=100 loops=1)
+         Sort Key: (((count(DISTINCT questions.id) + count(DISTINCT answers.id)) + count(DISTINCT comments.id))) DESC
+         Sort Method: top-N heapsort  Memory: 32kB
+         Buffers: shared hit=14157 read=1174444, temp read=4643 written=776
+         ->  GroupAggregate  (cost=1354635.96..1536755.27 rows=1492696 width=22) (actual time=2304.765..5533.855 rows=1492696 loops=1)
+               Group Key: u.id
+               Buffers: shared hit=14154 read=1174444, temp read=4643 written=776
+               ->  Incremental Sort  (cost=1354635.96..1499437.87 rows=1492696 width=26) (actual time=2304.432..3728.244 rows=2014206 loops=1)
+                     Sort Key: u.id, questions.id
+                     Presorted Key: u.id
+                     Full-sort Groups: 48321  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
+                     Pre-sorted Groups: 13372  Sort Method: quicksort  Average Memory: 1468kB  Peak Memory: 1749kB
+                     Buffers: shared hit=14154 read=1174444, temp read=4643 written=776
+                     ->  Merge Left Join  (cost=1354635.90..1432266.55 rows=1492696 width=26) (actual time=2303.993..3328.650 rows=2014206 loops=1)
+                           Merge Cond: (u.id = comments.userid)
+                           Buffers: shared hit=14151 read=1174444, temp read=4643 written=776
+                           ->  Merge Left Join  (cost=900816.52..973173.60 rows=1492696 width=22) (actual time=1253.215..1999.321 rows=1506042 loops=1)
+                                 Merge Cond: (u.id = answers.owneruserid)
+                                 Buffers: shared hit=14151 read=846228
+                                 ->  Merge Left Join  (cost=430670.78..498755.23 rows=1492696 width=18) (actual time=581.609..1151.777 rows=1495552 loops=1)
+                                       Merge Cond: (u.id = questions.owneruserid)
+                                       Buffers: shared hit=14151 read=424997
+                                       ->  Index Scan using users_pkey on users u  (cost=0.43..63902.22 rows=1492696 width=14) (actual time=0.056..355.234 rows=1492696 loops=1)
+                                             Buffers: shared hit=14151 read=28803
+                                       ->  Sort  (cost=430670.34..430747.00 rows=30663 width=12) (actual time=581.518..587.621 rows=34492 loops=1)
+                                             Sort Key: questions.owneruserid
+                                             Sort Method: quicksort  Memory: 2886kB
+                                             Buffers: shared read=396194
+                                             ->  Gather  (cost=1000.00..428385.30 rows=30663 width=12) (actual time=566.779..573.908 rows=34561 loops=1)
+                                                   Workers Planned: 2
+                                                   Workers Launched: 2
+                                                   Buffers: shared read=396194
+                                                   ->  Parallel Seq Scan on questions  (cost=0.00..424319.00 rows=12776 width=12) (actual time=520.229..559.569 rows=11520 loops=3)
+                                                         Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                                         Rows Removed by Filter: 988480
+                                                         Buffers: shared read=396194
+                                 ->  Sort  (cost=470145.73..470236.88 rows=36461 width=12) (actual time=671.574..678.228 rows=35585 loops=1)
+                                       Sort Key: answers.owneruserid
+                                       Sort Method: quicksort  Memory: 2870kB
+                                       Buffers: shared read=421231
+                                       ->  Gather  (cost=1000.00..467383.07 rows=36461 width=12) (actual time=655.654..664.825 rows=34148 loops=1)
+                                             Workers Planned: 2
+                                             Workers Launched: 2
+                                             Buffers: shared read=421231
+                                             ->  Parallel Seq Scan on answers  (cost=0.00..462736.97 rows=15192 width=12) (actual time=641.249..650.248 rows=11383 loops=3)
+                                                   Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                                   Rows Removed by Filter: 1464385
+                                                   Buffers: shared read=421231
+                           ->  Sort  (cost=453818.65..454080.42 rows=104708 width=12) (actual time=1050.745..1097.890 rows=559644 loops=1)
+                                 Sort Key: comments.userid
+                                 Sort Method: external sort  Disk: 3104kB
+                                 Buffers: shared read=328216, temp read=2737 written=776
+                                 ->  Gather  (cost=1000.00..445088.09 rows=104708 width=12) (actual time=996.165..1016.431 rows=105447 loops=1)
+                                       Workers Planned: 2
+                                       Workers Launched: 2
+                                       Buffers: shared read=328216
+                                       ->  Parallel Seq Scan on comments  (cost=0.00..433617.29 rows=43628 width=12) (actual time=979.200..995.926 rows=35149 loops=3)
+                                             Filter: ((creationdate <= now()) AND (creationdate >= (now() - '6 mons'::interval)))
+                                             Rows Removed by Filter: 3712452
+                                             Buffers: shared read=328216
+ Planning:
+   Buffers: shared hit=268 read=28
+ Planning Time: 1.348 ms
+ JIT:
+   Functions: 59
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 3.625 ms, Inlining 420.499 ms, Optimization 189.130 ms, Emission 142.197 ms, Total 755.450 ms
+ Execution Time: 6036.879 ms
+(70 rows)
+

@@ -1,0 +1,47 @@
+                                                                                            QUERY PLAN                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=75790.12..75801.78 rows=100 width=22) (actual time=383.230..388.766 rows=100 loops=1)
+   Buffers: shared hit=61765 read=21853
+   ->  Gather Merge  (cost=75790.12..220923.55 rows=1243914 width=22) (actual time=383.228..388.758 rows=100 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=61765 read=21853
+         ->  Sort  (cost=74790.09..76344.98 rows=621957 width=22) (actual time=380.211..380.221 rows=76 loops=3)
+               Sort Key: (COALESCE(q.interaction_count, '0'::bigint)) DESC
+               Sort Method: top-N heapsort  Memory: 31kB
+               Buffers: shared hit=61765 read=21853
+               Worker 0:  Sort Method: top-N heapsort  Memory: 31kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 32kB
+               ->  Hash Left Join  (cost=18045.14..51019.34 rows=621957 width=22) (actual time=142.967..310.661 rows=497565 loops=3)
+                     Hash Cond: (u.id = q.owneruserid)
+                     Buffers: shared hit=61751 read=21853
+                     ->  Parallel Seq Scan on users u  (cost=0.00..31341.57 rows=621957 width=14) (actual time=0.022..46.644 rows=497565 loops=3)
+                           Buffers: shared hit=3269 read=21853
+                     ->  Hash  (cost=18042.64..18042.64 rows=200 width=16) (actual time=142.903..142.907 rows=63839 loops=3)
+                           Buckets: 65536 (originally 1024)  Batches: 1 (originally 1)  Memory Usage: 3505kB
+                           Buffers: shared hit=58446
+                           ->  Subquery Scan on q  (cost=18038.64..18042.64 rows=200 width=16) (actual time=116.464..133.068 rows=63840 loops=3)
+                                 Buffers: shared hit=58446
+                                 ->  HashAggregate  (cost=18038.64..18040.64 rows=200 width=16) (actual time=116.463..128.189 rows=63840 loops=3)
+                                       Group Key: questions.owneruserid
+                                       Batches: 1  Memory Usage: 7201kB
+                                       Buffers: shared hit=58446
+                                       Worker 0:  Batches: 1  Memory Usage: 7201kB
+                                       Worker 1:  Batches: 1  Memory Usage: 7201kB
+                                       ->  Append  (cost=0.44..17170.23 rows=173681 width=8) (actual time=0.065..74.245 rows=174087 loops=3)
+                                             Buffers: shared hit=58446
+                                             ->  Index Scan using idx_questions_creationdate on questions  (cost=0.44..5053.80 rows=30955 width=8) (actual time=0.064..17.251 rows=34546 loops=3)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                   Buffers: shared hit=22898
+                                             ->  Index Scan using idx_answers_creationdate on answers  (cost=0.44..4663.44 rows=36908 width=8) (actual time=0.054..13.959 rows=34132 loops=3)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                   Buffers: shared hit=18953
+                                             ->  Index Scan using idx_comments_creationdate on comments  (cost=0.44..6584.59 rows=105818 width=8) (actual time=0.057..32.321 rows=105409 loops=3)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                   Buffers: shared hit=16595
+ Planning:
+   Buffers: shared hit=362 read=19
+ Planning Time: 1.226 ms
+ Execution Time: 389.304 ms
+(43 rows)
+

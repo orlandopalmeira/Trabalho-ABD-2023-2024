@@ -1,0 +1,73 @@
+                                                                                               QUERY PLAN                                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=85177.30..85188.96 rows=100 width=22) (actual time=611.944..618.555 rows=100 loops=1)
+   Buffers: shared hit=61758 read=21860
+   ->  Gather Merge  (cost=85177.30..230310.73 rows=1243914 width=22) (actual time=611.943..618.547 rows=100 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=61758 read=21860
+         ->  Sort  (cost=84177.27..85732.16 rows=621957 width=22) (actual time=606.235..606.248 rows=79 loops=3)
+               Sort Key: (((COALESCE(q.qcount, '0'::bigint) + COALESCE(a.acount, '0'::bigint)) + COALESCE(c.ccount, '0'::bigint))) DESC
+               Sort Method: top-N heapsort  Memory: 32kB
+               Buffers: shared hit=61758 read=21860
+               Worker 0:  Sort Method: top-N heapsort  Memory: 32kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 32kB
+               ->  Hash Left Join  (cost=21057.26..60406.52 rows=621957 width=22) (actual time=147.121..535.700 rows=497565 loops=3)
+                     Hash Cond: (u.id = c.userid)
+                     Buffers: shared hit=61744 read=21860
+                     ->  Hash Left Join  (cost=12024.17..46631.01 rows=621957 width=30) (actual time=73.710..353.258 rows=497565 loops=3)
+                           Hash Cond: (u.id = a.owneruserid)
+                           Buffers: shared hit=45149 read=21860
+                           ->  Hash Left Join  (cost=6182.63..39156.84 rows=621957 width=22) (actual time=41.221..226.619 rows=497565 loops=3)
+                                 Hash Cond: (u.id = q.owneruserid)
+                                 Buffers: shared hit=26196 read=21860
+                                 ->  Parallel Seq Scan on users u  (cost=0.00..31341.57 rows=621957 width=14) (actual time=0.030..55.638 rows=497565 loops=3)
+                                       Buffers: shared hit=3262 read=21860
+                                 ->  Hash  (cost=5808.00..5808.00 rows=29971 width=16) (actual time=40.996..40.998 rows=31620 loops=3)
+                                       Buckets: 32768  Batches: 1  Memory Usage: 1739kB
+                                       Buffers: shared hit=22898
+                                       ->  Subquery Scan on q  (cost=5208.58..5808.00 rows=29971 width=16) (actual time=28.265..35.894 rows=31621 loops=3)
+                                             Buffers: shared hit=22898
+                                             ->  HashAggregate  (cost=5208.58..5508.29 rows=29971 width=16) (actual time=28.264..33.459 rows=31621 loops=3)
+                                                   Group Key: questions.owneruserid
+                                                   Batches: 1  Memory Usage: 3601kB
+                                                   Buffers: shared hit=22898
+                                                   Worker 0:  Batches: 1  Memory Usage: 3601kB
+                                                   Worker 1:  Batches: 1  Memory Usage: 3601kB
+                                                   ->  Index Scan using idx_questions_creationdate on questions  (cost=0.44..5053.80 rows=30955 width=8) (actual time=0.061..17.059 rows=34546 loops=3)
+                                                         Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                         Buffers: shared hit=22898
+                           ->  Hash  (cost=5459.40..5459.40 rows=30571 width=16) (actual time=32.316..32.318 rows=21917 loops=3)
+                                 Buckets: 32768  Batches: 1  Memory Usage: 1284kB
+                                 Buffers: shared hit=18953
+                                 ->  Subquery Scan on a  (cost=4847.98..5459.40 rows=30571 width=16) (actual time=23.385..28.630 rows=21918 loops=3)
+                                       Buffers: shared hit=18953
+                                       ->  HashAggregate  (cost=4847.98..5153.69 rows=30571 width=16) (actual time=23.384..26.922 rows=21918 loops=3)
+                                             Group Key: answers.owneruserid
+                                             Batches: 1  Memory Usage: 3089kB
+                                             Buffers: shared hit=18953
+                                             Worker 0:  Batches: 1  Memory Usage: 3089kB
+                                             Worker 1:  Batches: 1  Memory Usage: 3089kB
+                                             ->  Index Scan using idx_answers_creationdate on answers  (cost=0.44..4663.44 rows=36908 width=8) (actual time=0.071..13.385 rows=34132 loops=3)
+                                                   Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                                   Buffers: shared hit=18953
+                     ->  Hash  (cost=8294.86..8294.86 rows=59058 width=16) (actual time=73.096..73.098 rows=33878 loops=3)
+                           Buckets: 65536  Batches: 1  Memory Usage: 2101kB
+                           Buffers: shared hit=16595
+                           ->  Subquery Scan on c  (cost=7113.70..8294.86 rows=59058 width=16) (actual time=58.163..66.871 rows=33879 loops=3)
+                                 Buffers: shared hit=16595
+                                 ->  HashAggregate  (cost=7113.70..7704.28 rows=59058 width=16) (actual time=58.162..64.195 rows=33879 loops=3)
+                                       Group Key: comments.userid
+                                       Batches: 1  Memory Usage: 5393kB
+                                       Buffers: shared hit=16595
+                                       Worker 0:  Batches: 1  Memory Usage: 5393kB
+                                       Worker 1:  Batches: 1  Memory Usage: 5393kB
+                                       ->  Index Scan using idx_comments_creationdate on comments  (cost=0.44..6584.61 rows=105819 width=8) (actual time=0.069..33.486 rows=105410 loops=3)
+                                             Index Cond: ((creationdate >= (now() - '6 mons'::interval)) AND (creationdate <= now()))
+                                             Buffers: shared hit=16595
+ Planning:
+   Buffers: shared hit=378
+ Planning Time: 1.230 ms
+ Execution Time: 623.304 ms
+(69 rows)
+
