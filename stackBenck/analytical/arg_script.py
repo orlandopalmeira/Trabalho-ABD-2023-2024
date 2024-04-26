@@ -1,7 +1,6 @@
-import subprocess, psutil, psycopg2, time
+import subprocess, psycopg2, time, sys
+from prettytable import PrettyTable
 
-BASE_FILE = ""
-FINAL_FILE = "-vfinal"
 DBNAME = "stack"
 USER = "postgres"
 PASSWORD = "postgres"
@@ -13,32 +12,6 @@ def run_cmd(command: str):
     command_split = command.split(" ")
     subprocess.run(command_split)
 
-def run_base(q_num: int):
-    cmd = None
-    file_path = f"q{q_num}/q{q_num}{BASE_FILE}.sql"
-    read_file = open(file_path, "r")
-    print(read_file.read())
-    cmd = f"./avg_time.sh {file_path}"
-    run_cmd(cmd)
-
-def run_final(q_num: int):
-    cmd = None
-    file_path = f"q{q_num}/q{q_num}{FINAL_FILE}.sql"
-    cmd = f"./avg_time.sh {file_path}"
-    run_cmd(cmd)
-###
-
-
-
-def get_query_base(q_num) -> str:
-    file_path = f"q{q_num}/q{q_num}{BASE_FILE}.sql"
-    with open(file_path, "r") as file:
-        return file.read()
-
-def get_query_final(q_num) -> str:
-    file_path = f"q{q_num}/q{q_num}{FINAL_FILE}.sql"
-    with open(file_path, "r") as file:
-        return file.read()
 
 def execute_query(query: str):
     conn = psycopg2.connect(f"dbname={DBNAME} user={USER} password={PASSWORD}")
@@ -57,7 +30,7 @@ def measure_query(query: str, times=TIMES):
         # print(plan)
         time = plan[-1][0].split(" ")[-2] # in ms
         time = float(time) * 0.001 # converto to secs
-        # print(f"Execution time: {time} secs")
+        print(f"Execution time: {time} secs")
         exec_times.append(time)
     avg = sum(exec_times) / len(exec_times)
     avg = round(avg, 3)
@@ -65,33 +38,84 @@ def measure_query(query: str, times=TIMES):
 
 
 #* Q1
-
-#! WIP
 def q1_change_arguments(query_str: str, interval: str) -> str:
-    # query_str = query_str.replace("INTERVAL", f"'{interval}'") #! WIP
+    query_str = query_str.replace("6 months", f"{interval}")
     return query_str
 
-def q1_base(interval: str) -> float:
-    query = get_query_base(1)
-    # Change arguments
-    query = q1_change_arguments(query, interval)
-    avg = measure_query(query)
-    return avg
+def create_q1_table(query_str):
+    myTable = PrettyTable(["Arguments", "Time (s)"])
+    args = ["1 month", "3 months", "6 months", "1 year", "2 years"]
+    for arg in args:
+        print(f"Running query with argument: {arg}")
+        query = q1_change_arguments(query_str, arg)
+        avg_final = measure_query(query)
+        myTable.add_row([arg, avg_final])
+    print(myTable)
+    return myTable
 
-def q1_final(interval: str) -> float:
-    query = get_query_final(1)
-    # Change arguments
-    query = q1_change_arguments(query, interval)
-    avg = measure_query(query)
-    return avg
-    
+# TODO
+#* Q2
+def q2_change_arguments(query_str: str, interval: str) -> str:
+    query_str = query_str.replace("2019-01-01", f"{interval}")
+    return query_str
 
+def create_q2_table(query_str):
+    myTable = PrettyTable(["Arguments", "Time (s)"])
+    args = ["2019-01-01", "2018-01-01", "2017-01-01", "2016-01-01", "2015-01-01"]
+    for arg in args:
+        print(f"Running query with argument: {arg}")
+        query = q2_change_arguments(query_str, arg)
+        avg_final = measure_query(query)
+        myTable.add_row([arg, avg_final])
+    print(myTable)
+    return myTable
+
+#* Q3 - #!WIP
+def q3_change_arguments(query_str: str, minim: str) -> str:
+    query_str = query_str.replace("10", f"{minim}")
+    return query_str
+
+def create_q3_table(query_str):
+    myTable = PrettyTable(["Arguments", "Time (s)"])
+    args = ["10", "20", "30", "40", "50"]
+    for arg in args:
+        print(f"Running query with argument: {arg}")
+        query = q3_change_arguments(query_str, arg)
+        avg_final = measure_query(query)
+        myTable.add_row([arg, avg_final])
+    print(myTable)
+    return myTable
+
+#* Q4 - #!WIP
+def q4_change_arguments(query_str: str, bucketSize: str) -> str:
+    query_str = query_str.replace("1 minute", f"{bucketSize}")
+    return query_str
+
+def create_q4_table(query_str):
+    myTable = PrettyTable(["Arguments", "Time (s)"])
+    args = ["1 minute", "10 minutes", "30 minutes", "1 hour", "6 hours"]
+    for arg in args:
+        print(f"Running query with argument: {arg}")
+        query = q4_change_arguments(query_str, arg)
+        avg_final = measure_query(query)
+        myTable.add_row([arg, avg_final])
+    print(myTable)
+    return myTable
 
 if __name__ == "__main__":
+    # python3 arg_script.py file.sql
+    if len(sys.argv) < 2:
+        print("Usage: python3 arg_script.py file.sql")
+        sys.exit(1)
+    file_sql = sys.argv[1]
+    with open(file_sql, "r") as f:
+        query_str = f.read()
 
-    arg = "6 months"
-    avg = q1_base(arg)
-    print(f"Average for q1-base with : {avg} secs")
-
-    avg = q1_final("6 months")
-    print(f"Average for q1-final: {avg} secs")
+    if "q1" in file_sql:
+        create_q1_table(query_str)
+    elif "q2" in file_sql:
+        create_q2_table(query_str)
+    elif "q3" in file_sql:
+        create_q3_table(query_str)
+    elif "q4" in file_sql:
+        create_q4_table(query_str)
