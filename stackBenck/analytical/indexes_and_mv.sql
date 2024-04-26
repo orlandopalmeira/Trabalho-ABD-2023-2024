@@ -37,6 +37,18 @@ WHERE
 
 -- Q4
 
--- CREATE INDEX idx_users_creationdate ON users (creationdate);
--- CREATE INDEX idx_answers_owneruserid ON answers (owneruserid);
--- CREATE INDEX idx_votes_postid_creationdate ON votes (postid, creationdate);
+-- CREATE MATERIALIZED VIEW badges_mat_view AS
+-- SELECT date
+-- FROM badges
+-- WHERE NOT tagbased
+--     AND name NOT IN (
+--         'Analytical',
+--         'Census',
+--         'Documentation Beta',
+--         'Documentation Pioneer',
+--         'Documentation User',
+--         'Reversal',
+--         'Tumbleweed'
+--     )
+--     AND class in (1, 2, 3)
+--     AND userid <> -1
