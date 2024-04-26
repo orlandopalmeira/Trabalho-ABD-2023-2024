@@ -5,7 +5,7 @@ DBNAME = "stack"
 USER = "postgres"
 PASSWORD = "postgres"
 
-TIMES = 3 # Number of times to execute the query for average
+TIMES = 2 # Number of times to execute the query for average
 
 # Shell
 def run_cmd(command: str):
@@ -39,8 +39,15 @@ def measure_query(query: str, times=TIMES):
 
 #* Q1
 def q1_change_arguments(query_str: str, interval: str) -> str:
-    query_str = query_str.replace("6 months", f"{interval}")
-    return query_str
+    STANDARD = "6 months"
+    query_str_res = query_str.replace(STANDARD, f"{interval}")
+    if STANDARD != interval and query_str_res == query_str:
+        print(f"ERROR while switching q1 args. No arguments were changed in query. Exiting...")
+        sys.exit(1)
+    elif STANDARD == interval and query_str_res != query_str:
+        print(f"WARNING: Standard argument changed query 1!!")
+        sys.exit(1)
+    return query_str_res
 
 def create_q1_table(query_str):
     myTable = PrettyTable(["Arguments", "Time (s)"])
@@ -55,9 +62,17 @@ def create_q1_table(query_str):
 
 #* Q2
 def q2_change_arguments(query_str: str, interval: str, bucketInterval: str) -> str:
-    query_str = query_str.replace("5000", f"{bucketInterval}")
-    query_str = query_str.replace("5 year", f"{interval}")
-    return query_str
+    STANDARD_BUCKET = "5000"
+    STANDARD_INTERVAL = "5 years"
+    query_str_res = query_str.replace("5000", f"{bucketInterval}")
+    query_str_res = query_str.replace("5 year", f"{interval}")
+    if STANDARD_INTERVAL != interval and STANDARD_BUCKET != bucketInterval and query_str_res == query_str:
+        print(f"ERROR while switching q2 args. No arguments were changed in query. Exiting...")
+        sys.exit(1)
+    elif STANDARD_INTERVAL == interval and STANDARD_BUCKET == bucketInterval and query_str_res != query_str:
+        print(f"WARNING: Standard argument changed query 2!!")
+        sys.exit(1)
+    return query_str_res
 
 def create_q2_table(query_str):
     myTable = PrettyTable(["Interval", "Bucket", "Time (s)"])
@@ -72,10 +87,17 @@ def create_q2_table(query_str):
     print(myTable)
     return myTable
 
-#* Q3 - #!WIP
+#* Q3
 def q3_change_arguments(query_str: str, minim: str) -> str:
-    query_str = query_str.replace("10", f"{minim}")
-    return query_str
+    STANDARD = "10"
+    query_str_res = query_str.replace(STANDARD, f"{minim}")
+    if STANDARD != minim and query_str_res == query_str:
+        print(f"ERROR while switching q3 args. No arguments were changed in query. Exiting...")
+        sys.exit(1)
+    elif STANDARD == minim and query_str_res != query_str:
+        print(f"WARNING: Standard argument changed query 3!!")
+        sys.exit(1)
+    return query_str_res
 
 def create_q3_table(query_str):
     myTable = PrettyTable(["Arguments", "Time (s)"])
@@ -88,10 +110,17 @@ def create_q3_table(query_str):
     print(myTable)
     return myTable
 
-#* Q4 - #!WIP
+#* Q4
 def q4_change_arguments(query_str: str, bucketSize: str) -> str:
-    query_str = query_str.replace("1 minute", f"{bucketSize}")
-    return query_str
+    STANDARD = "1 minute"
+    query_str_res = query_str.replace(STANDARD, f"{bucketSize}")
+    if STANDARD != bucketSize and query_str_res == query_str:
+        print(f"ERROR while switching q4 args. No arguments were changed in query. Exiting...")
+        sys.exit(1)
+    elif STANDARD == bucketSize and query_str_res != query_str:
+        print(f"WARNING: Standard argument changed query 4!!")
+        sys.exit(1)
+    return query_str_res
 
 def create_q4_table(query_str):
     myTable = PrettyTable(["Arguments", "Time (s)"])
