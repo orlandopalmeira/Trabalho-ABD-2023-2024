@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession, DataFrame, Row
-from pyspark.sql.functions import year, month, concat, lit
+from pyspark.sql.functions import col
 
 def count_rows(iterator):
     yield len(list(iterator))
@@ -31,24 +31,51 @@ votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferS
 
 
 # write the data to basic parquet #*(USED)
-answers.write.parquet(f'{path_to_data}answers_parquet')
-badges.write.parquet(f'{path_to_data}badges_parquet')
-comments.write.parquet(f'{path_to_data}comments_parquet')
-questions.write.parquet(f'{path_to_data}questions_parquet')
-questionsLinks.write.parquet(f'{path_to_data}questionsLinks_parquet')
-questionsTags.write.parquet(f'{path_to_data}questionsTags_parquet')
-tags.write.parquet(f'{path_to_data}tags_parquet')
-users.write.parquet(f'{path_to_data}users_parquet')
-votes.write.parquet(f'{path_to_data}votes_parquet')
-votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
+# answers.write.parquet(f'{path_to_data}answers_parquet')
+# badges.write.parquet(f'{path_to_data}badges_parquet')
+# comments.write.parquet(f'{path_to_data}comments_parquet')
+# questions.write.parquet(f'{path_to_data}questions_parquet')
+# questionsLinks.write.parquet(f'{path_to_data}questionsLinks_parquet')
+# questionsTags.write.parquet(f'{path_to_data}questionsTags_parquet')
+# tags.write.parquet(f'{path_to_data}tags_parquet')
+# users.write.parquet(f'{path_to_data}users_parquet')
+# votes.write.parquet(f'{path_to_data}votes_parquet')
+# votesTypes.write.parquet(f'{path_to_data}votesTypes_parquet')
 
 # Adicionar uma coluna (YEAR) para depois fazer partição por essa coluna mais abrangente e utilizando-a nas queries para permitir partition pruning #*(USED)
-answers = answers.withColumn('creationyear', year(answers.CreationDate))
-answers.write.parquet(f'{path_to_data}answers_parquet_part_year', partitionBy='creationyear')
-questions = questions.withColumn('creationyear', year(questions.CreationDate))
-questions.write.parquet(f'{path_to_data}questions_parquet_part_year', partitionBy='creationyear')
-comments = comments.withColumn('creationyear', year(comments.CreationDate))
-comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy='creationyear')
+# answers = answers.withColumn('creationyear', year(answers.CreationDate))
+# answers.write.parquet(f'{path_to_data}answers_parquet_part_year', partitionBy='creationyear')
+# questions = questions.withColumn('creationyear', year(questions.CreationDate))
+# questions.write.parquet(f'{path_to_data}questions_parquet_part_year', partitionBy='creationyear')
+# comments = comments.withColumn('creationyear', year(comments.CreationDate))
+# comments.write.parquet(f'{path_to_data}comments_parquet_part_year', partitionBy='creationyear')
+
+
+#* Q1 - new
+# answers_ordered = answers.orderBy('CreationDate')
+# questions_ordered = questions.orderBy('CreationDate')
+# comments_ordered = comments.orderBy('CreationDate')
+# answers_ordered.write.parquet(f'{path_to_data}answers_ordered_parquet')
+# questions_ordered.write.parquet(f'{path_to_data}questions_ordered_parquet')
+# comments_ordered.write.parquet(f'{path_to_data}comments_ordered_parquet')
+
+# ou
+
+questions_selected = questions.select("owneruserid", "creationdate")
+answers_selected = answers.select("owneruserid", "creationdate")
+comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
+
+interactions = (
+    questions_selected
+    .union(answers_selected)
+    .union(comments_selected)
+).orderBy("creationdate")
+
+interactions.write.parquet(f'{path_to_data}interactions_ordered_parquet')
+
+
+
+
 
 #> Using repartitionByRange (nao se notou nenhuma melhoria)
 # answers_r = answers.repartitionByRange('CreationDate')

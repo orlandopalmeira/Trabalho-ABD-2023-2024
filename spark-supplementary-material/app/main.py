@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
-from pyspark.sql.functions import round as spark_round, avg, count, lower, udf, broadcast, desc, asc
-from pyspark.sql.functions import countDistinct, col, current_timestamp, current_date, expr, date_trunc, window, lit, coalesce, add_months, year, month, concat
+from pyspark.sql.functions import round as count, broadcast
+from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -115,7 +115,7 @@ def q1_clean(users: DataFrame, questions: DataFrame, answers: DataFrame, comment
 
 @timeit
 def q1_cache(users: DataFrame, cache: DataFrame, interval: StringType = "6 months",) -> List[Row]:
-    #* versão baseada va q1-v4
+    #* versão baseada na q1-v4
     
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
     lower_interval_year = year(lower_interval)
@@ -129,6 +129,32 @@ def q1_cache(users: DataFrame, cache: DataFrame, interval: StringType = "6 month
     result_df = (
         users
         .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
+        .select(
+            users["id"],
+            users["displayname"],
+            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
+        )
+        .orderBy(col("total").desc())
+        .limit(100)
+    )
+    
+    return result_df.collect()
+
+@timeit
+def q1_new(users: DataFrame, interactions: DataFrame, interval: StringType = "6 months"):
+    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
+    # lower_interval_year = year(lower_interval)
+
+    interactions_grouped = (
+        # interactions.filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
+        interactions.filter((col("creationdate").between(lower_interval, current_timestamp())))
+        .groupBy("owneruserid")
+        .agg(count("*").alias("interaction_count"))
+    )
+
+    result_df = (
+        users
+        .join(broadcast(interactions_grouped), users["id"] == interactions["owneruserid"], "left")
         .select(
             users["id"],
             users["displayname"],
@@ -270,7 +296,8 @@ def main():
     # Q1
     @timeit
     def w1():
-        q1_clean(users, questions, answers, comments, '6 months')
+        for _ in range(5):
+            q1_clean(users, questions, answers, comments, '6 months')
 
     @timeit
     def w1_avg():
@@ -299,6 +326,13 @@ def main():
         q1_cache(users, interactions, '6 months')
         q1_cache(users, interactions, '6 months')
 
+    @timeit
+    def w1_new():
+        interactions = spark.read.parquet(f"{data_to_path}interactions_ordered_parquet")
+        users = spark.read.parquet(f"{data_to_path}users_parquet")
+        for _ in range(5):
+            q1_new(users, interactions, '6 months')
+
     # Q2
     @timeit
     def w2():
@@ -309,7 +343,7 @@ def main():
     def w3():
         q3(tags, questionsTags, answers, 10)
 
-    mat_view_q3 = spark.read.parquet("mv_q3.parquet")
+    
     @timeit
     def w3_mv():
         # # para criar a vista materializada em ficheiro
@@ -335,6 +369,8 @@ def main():
         #     GROUP BY tqc.tagname, ft.tag_count"""
         # )
         # result.write.parquet("mv_q3.parquet")
+
+        mat_view_q3 = spark.read.parquet("mv_q3.parquet")
 
         for i in range(100):
             q3_mv(mat_view_q3, 10)
