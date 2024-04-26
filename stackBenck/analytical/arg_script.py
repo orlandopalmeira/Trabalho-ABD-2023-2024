@@ -53,20 +53,22 @@ def create_q1_table(query_str):
     print(myTable)
     return myTable
 
-# TODO
 #* Q2
-def q2_change_arguments(query_str: str, interval: str) -> str:
-    query_str = query_str.replace("2019-01-01", f"{interval}")
+def q2_change_arguments(query_str: str, interval: str, bucketInterval: str) -> str:
+    query_str = query_str.replace("5000", f"{bucketInterval}")
+    query_str = query_str.replace("5 year", f"{interval}")
     return query_str
 
 def create_q2_table(query_str):
-    myTable = PrettyTable(["Arguments", "Time (s)"])
-    args = ["2019-01-01", "2018-01-01", "2017-01-01", "2016-01-01", "2015-01-01"]
-    for arg in args:
-        print(f"Running query with argument: {arg}")
-        query = q2_change_arguments(query_str, arg)
-        avg_final = measure_query(query)
-        myTable.add_row([arg, avg_final])
+    myTable = PrettyTable(["Interval", "Bucket", "Time (s)"])
+    args_interval = ["1 year", "2 years", "3 years", "4 years", "5 years"] # Provisorio
+    args_bucket = ["5000", "10000", "15000", "20000", "25000"] # Provisorio
+    for arg_i in args_interval:
+        for arg_b in args_bucket:
+            print(f"Running query with arguments: {arg_i}, {arg_b}")
+            query = q2_change_arguments(query_str, arg_i, arg_b)
+            avg_final = measure_query(query)
+            myTable.add_row([arg_i, arg_b, avg_final])
     print(myTable)
     return myTable
 
