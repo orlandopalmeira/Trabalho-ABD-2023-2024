@@ -10,6 +10,14 @@ WHERE
     idx.schemaname = 'public' -- Change to your schema if needed
     AND con.contype IS NULL;
 
+SELECT 
+    relname AS materialized_view_name, 
+    relnamespace::regnamespace AS schema_name
+FROM 
+    pg_class 
+WHERE 
+    relkind = 'm';
+
 
 -- Q1
 
