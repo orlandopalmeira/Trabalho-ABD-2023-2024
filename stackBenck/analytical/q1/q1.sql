@@ -1,4 +1,3 @@
--- Active: 1708441413272@@127.0.0.1@5432@stack
 SELECT id, displayname,
     count(DISTINCT q_id) + count(DISTINCT a_id) + count(DISTINCT c_id) total
 FROM (
