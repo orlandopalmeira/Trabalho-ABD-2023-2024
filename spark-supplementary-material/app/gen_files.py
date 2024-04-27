@@ -83,6 +83,19 @@ def q1_add_year_partition():
     new_comments = comments.withColumn('creationyear', year(comments.CreationDate)).select('UserId', 'CreationDate', 'creationyear')
     new_comments.write.parquet(f'{Q1_PATH}comments_parquet_part_year', partitionBy='creationyear')
 
+def q1_interactions_year_partition():
+    questions_selected = questions.select("OwnerUserId", "CreationDate", year("CreationDate").alias("creationyear"))
+    answers_selected = answers.select("OwnerUserId", "CreationDate", year("CreationDate").alias("creationyear"))
+    comments_selected = comments.select(col("UserId").alias("OwnerUserId"), "CreationDate", year("CreationDate").alias("creationyear"))
+
+    interactions = (
+        questions_selected
+        .union(answers_selected)
+        .union(comments_selected)
+    )
+
+    interactions.write.parquet(f'{Q1_PATH}interactions_year_partition', partitionBy='creationyear')
+
 
 def q1_repartitionByRange():
     answers_rep = answers.select('owneruserid', 'creationdate').repartitionByRange(col('creationdate'))
@@ -101,6 +114,30 @@ Q2_PATH = f"{path_to_data}Q2/"
 #* Q3
 Q3_PATH = f"{path_to_data}Q3/"
 
+def q3_create_mv():
+    questionsTags.createOrReplaceTempView("questionstags")
+    answers.createOrReplaceTempView("answers")
+    tags.createOrReplaceTempView("tags")
+    spark.sql("""
+        SELECT qt.tagid, t.tagname, qt.questionid, COUNT(*) AS total
+        FROM questionstags qt
+        LEFT JOIN answers a ON a.parentid = qt.questionid
+        LEFT JOIN tags t ON t.id = qt.tagid
+        GROUP BY qt.tagid, qt.questionid, t.tagname
+    """).createOrReplaceTempView("TagQuestionCounts")
+    spark.sql("""
+        SELECT tagid, COUNT(*) as tag_count
+        FROM TagQuestionCounts
+        GROUP BY tagid
+    """).createOrReplaceTempView("FilteredTags")
+    result = spark.sql("""
+        SELECT tqc.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count, COUNT(*)
+        FROM TagQuestionCounts tqc
+        JOIN FilteredTags ft ON ft.tagid = tqc.tagid
+        GROUP BY tqc.tagname, ft.tag_count"""
+    )
+    result.write.parquet(f"{Q3_PATH}mv_q3.parquet")
+
 
 
 #* Q4
@@ -113,8 +150,9 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Running pre-defined function...")
         # q1_users()
-        q1_add_year_partition()
-        q1_interactions_ordered_parquet()
+        # q1_add_year_partition()
+        # q1_interactions_ordered_parquet()
+        q1_interactions_year_partition
 
 
     else:

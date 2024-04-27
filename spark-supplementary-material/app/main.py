@@ -82,10 +82,6 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
 @timeit
 def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
     
-    # questions_selected = questions.select("owneruserid", "creationdate")
-    # answers_selected = answers.select("owneruserid", "creationdate")
-    # comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
-
     #> Versão com a coluna creation_year
     questions_selected = questions.select("owneruserid", "creationdate", "creationyear")
     answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
@@ -173,10 +169,6 @@ def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLi
 # LEFT JOIN tags t ON t.id = tqc.tagid
 # GROUP BY t.tagname
 # ORDER BY avg_total DESC, tag_count DESC, t.tagname;
-
-    # spark = SparkSession.builder \
-    # .appName("MaterializedViewUsage") \
-    # .getOrCreate()
 
     tag_question_counts = questionsTags.alias("qt") \
                              .join(answers.alias("a"), questionsTags["questionid"] == answers["parentid"], "left") \
@@ -318,33 +310,9 @@ def main():
 
     
     def w3_mv():
-        # # para criar a vista materializada em ficheiro
-        # questionsTags.createOrReplaceTempView("questionstags")
-        # answers.createOrReplaceTempView("answers")
-        # tags.createOrReplaceTempView("tags")
-        # spark.sql("""
-        #     SELECT qt.tagid, t.tagname, qt.questionid, COUNT(*) AS total
-        #     FROM questionstags qt
-        #     LEFT JOIN answers a ON a.parentid = qt.questionid
-        #     LEFT JOIN tags t ON t.id = qt.tagid
-        #     GROUP BY qt.tagid, qt.questionid, t.tagname
-        # """).createOrReplaceTempView("TagQuestionCounts")
-        # spark.sql("""
-        #     SELECT tagid, COUNT(*) as tag_count
-        #     FROM TagQuestionCounts
-        #     GROUP BY tagid
-        # """).createOrReplaceTempView("FilteredTags")
-        # result = spark.sql("""
-        #     SELECT tqc.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count, COUNT(*)
-        #     FROM TagQuestionCounts tqc
-        #     JOIN FilteredTags ft ON ft.tagid = tqc.tagid
-        #     GROUP BY tqc.tagname, ft.tag_count"""
-        # )
-        # result.write.parquet("mv_q3.parquet")
+        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_q3.parquet")
 
-        mat_view_q3 = spark.read.parquet("mv_q3.parquet")
-
-        for i in range(100):
+        for i in range(10):
             q3_mv(mat_view_q3, 10)
 
     # Q4
