@@ -20,6 +20,7 @@ docker exec spark-spark-1 start-history-server.sh
 
 ## Execute the main.py job:
 docker exec spark-spark-1 python3 main.py
+docker exec spark-spark-1 python3 gen_files.py
 
 ## To stop the cluster:
 docker compose -p spark stop

@@ -8,6 +8,13 @@ import time
 from functools import wraps
 import sys
 
+data_to_path = "/app/stack/"
+Q1_PATH = f"{data_to_path}Q1/"
+Q2_PATH = f"{data_to_path}Q2/"
+Q3_PATH = f"{data_to_path}Q3/"
+Q4_PATH = f"{data_to_path}Q4/"
+
+times = {}
 
 # utility to measure the runtime of some function
 def timeit(f):
@@ -15,7 +22,12 @@ def timeit(f):
     def wrap(*args, **kw):
         t = time.time()
         result = f(*args, **kw)
-        print(f'{f.__name__}: {round(time.time() - t, 3)}s')
+        measured_time = round(time.time() - t, 3)
+        if times.get(f.__name__):
+            times[f.__name__].append(measured_time)
+        else:
+            times[f.__name__] = [measured_time]
+        print(f'{f.__name__}: {measured_time}s')
         return result
     return wrap
 
@@ -27,17 +39,19 @@ def showPartitionSize(df: DataFrame):
     for partition, rows in enumerate(df.rdd.mapPartitions(count_rows).collect()):
         print(f'Partition {partition} has {rows} rows')
 
+def write_result(res, filename):
+    with open(filename, "w") as f:
+        for row in res:
+            f.write(str(row) + "\n")
 
 # Queries analíticas
 
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
 
-    # questions_selected = questions.select("owneruserid", "creationdate")
-    # answers_selected = answers.select("owneruserid", "creationdate")
     questions_selected = questions
     answers_selected = answers
-    comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
+    comments_selected = comments#.select(col("userid").alias("owneruserid"), "creationdate")
 
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
 
@@ -106,7 +120,7 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
 
 
 @timeit
-def q1_new(users: DataFrame, interactions: DataFrame, interval: StringType = "6 months"):
+def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: StringType = "6 months"):
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
     # lower_interval_year = year(lower_interval)
 
@@ -130,6 +144,7 @@ def q1_new(users: DataFrame, interactions: DataFrame, interval: StringType = "6 
     )
     
     return result_df.collect()
+
 
 @timeit
 # def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, interval: StringType = "5 years", bucketInterval : IntegerType = 5000):
@@ -224,68 +239,84 @@ def main():
             # .config("spark.executor.cores", "2") \
             # .config("spark.executor.instances", 3) \
 
-    data_to_path = "/app/stack/"
 
-    
+
     # Q1
-    @timeit
     def w1():
         # Reads
-        users = spark.read.parquet(f"{data_to_path}users_parquet")
-        questions = spark.read.parquet(f"{data_to_path}questions_creationdate_ordered")
-        answers = spark.read.parquet(f"{data_to_path}answers_creationdate_ordered")
-        comments = spark.read.parquet(f"{data_to_path}comments_creationdate_ordered")
+        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_ordered")
+        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_ordered")
+        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_ordered")
         
-        q1(users, questions, answers, comments, '6 months')
+        res = q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
 
-    @timeit
+        write_result(res, "w1.csv")
+
     def w1_year():
         # Reads
-        users = spark.read.parquet(f"{data_to_path}users_parquet")
-        questions = spark.read.parquet(f"{data_to_path}questions_parquet_part_year")
-        answers = spark.read.parquet(f"{data_to_path}answers_parquet_part_year")
-        comments = spark.read.parquet(f"{data_to_path}comments_parquet_part_year")
+        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+        questions = spark.read.parquet(f"{Q1_PATH}questions_parquet_part_year")
+        answers = spark.read.parquet(f"{Q1_PATH}answers_parquet_part_year")
+        comments = spark.read.parquet(f"{Q1_PATH}comments_parquet_part_year")
 
-        q1_year(users, questions, answers, comments, '6 months')
+        res=q1_year(users, questions, answers, comments, '6 months')
         q1_year(users, questions, answers, comments, '6 months')
         q1_year(users, questions, answers, comments, '6 months')
         q1_year(users, questions, answers, comments, '6 months')
         q1_year(users, questions, answers, comments, '6 months')
 
+        write_result(res, "w1-year.csv")
 
-    @timeit
-    def w1_new():
+
+    def w1_int_mv():
         # Reads
-        interactions = spark.read.parquet(f"{data_to_path}interactions_ordered_parquet")
-        users = spark.read.parquet(f"{data_to_path}users_parquet")
+        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+        interactions = spark.read.parquet(f"{Q1_PATH}interactions_ordered_parquet")
         
-        q1_new(users, interactions, '6 months')
-        q1_new(users, interactions, '6 months')
-        q1_new(users, interactions, '6 months')
-        q1_new(users, interactions, '6 months')
-        q1_new(users, interactions, '6 months')
+        res=q1_interactions_mv(users, interactions, '6 months')
+        q1_interactions_mv(users, interactions, '6 months')
+        q1_interactions_mv(users, interactions, '6 months')
+        q1_interactions_mv(users, interactions, '6 months')
+        q1_interactions_mv(users, interactions, '6 months')
+
+        write_result(res, "w1-int-mv.csv")
+
+
+    def w1_range():
+        """Using RepartitionByRange('creationdate') files"""
+        # Reads
+        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_reprange")
+        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_reprange")
+        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_reprange")
+        
+        res=q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+
+        write_result(res, "w1-range.csv")
 
     # Q2
-    @timeit
     def w2():
         q2()
 
     # Q3
-    @timeit
     def w3():
         # Reads
-        tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
-        questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
-        answers = spark.read.parquet(f'{data_to_path}answers_parquet')
+        tags = spark.read.parquet(f'{Q3_PATH}tags_parquet') # tabela estática
+        questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
+        answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
 
         q3(tags, questionsTags, answers, 10)
 
     
-    @timeit
     def w3_mv():
         # # para criar a vista materializada em ficheiro
         # questionsTags.createOrReplaceTempView("questionstags")
@@ -317,9 +348,8 @@ def main():
             q3_mv(mat_view_q3, 10)
 
     # Q4
-    @timeit
     def w4():
-        badges = spark.read.parquet(f'{data_to_path}badges_parquet')
+        badges = spark.read.parquet(f'{Q4_PATH}badges_parquet')
         
         # TODO METER ESTA FILTERED_BADGES EM FICHEIRO
         # q4(badges, "1 minute")
@@ -349,17 +379,25 @@ def main():
         w3()
         w4()
     elif sys.argv[1] == "t":
-        print("TEST DEBUGGING!")
         print("W1")
         w1()
         print("W1_YEAR")
         w1_year()
         print("W1_NEW")
-        w1_new()
+        w1_int_mv()
+        print("W1_RANGE")
+        w1_range()
 
 
     else:
         locals()[sys.argv[1]]()
+    
+    # Calculating average times
+    for func in times:
+        avg_time = sum(times[func]) / len(times[func])
+        avg_time = round(avg_time, 3)
+        print(f'Avg of {func}: {avg_time} seconds')
+
 
 
 if __name__ == '__main__':
