@@ -1,4 +1,4 @@
--- Active: 1712845059097@@127.0.0.1@5432@stack
+--* Indexes
 SELECT 
     idx.indexname AS index_name,
     idx.tablename AS table_name
@@ -10,6 +10,7 @@ WHERE
     idx.schemaname = 'public' -- Change to your schema if needed
     AND con.contype IS NULL;
 
+--* Materialized Views
 SELECT 
     relname AS materialized_view_name, 
     relnamespace::regnamespace AS schema_name
@@ -17,6 +18,19 @@ FROM
     pg_class 
 WHERE 
     relkind = 'm';
+
+--* Trigger Functions
+SELECT tgname AS trigger_name,
+       tgrelid::regclass AS table_name,
+       tgdeferrable AS deferrable,
+       tginitdeferred AS init_deferred,
+       tgfoid::regprocedure AS function_name,
+       tgtype AS trigger_type
+FROM pg_trigger;
+
+
+DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
+
 
 
 -- Q1
@@ -30,11 +44,6 @@ WHERE
 -- CREATE INDEX idx_votes_creationdate ON votes (creationdate);
 -- CREATE INDEX idx_users_creationdate ON users (creationdate);
 
--- CREATE MATERIALIZED VIEW users_years AS
--- SELECT id, reputation, extract(year FROM creationdate) AS c_year
---     FROM users;
-
--- CREATE INDEX year_idx ON users_years (c_year);
 
 -- Q3
 -- ???
