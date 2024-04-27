@@ -225,10 +225,9 @@ def main():
             .config("spark.eventLog.enabled", "true") \
             .config("spark.eventLog.dir", "/tmp/spark-events") \
             .config("spark.sql.adaptive.enabled", "true") \
-            .config("spark.executor.instances", 8) \
+            .config("spark.executor.instances", 3) \
             .config("spark.driver.memory", "8g") \
             .getOrCreate()
-            # .config("spark.executor.instances", 3) \
             # .config("spark.executor.cores", "2") \
             # .config("spark.executor.memory", "1g") \
 
