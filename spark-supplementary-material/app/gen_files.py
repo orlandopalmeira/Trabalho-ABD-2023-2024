@@ -76,12 +76,12 @@ def q1_interactions_ordered_parquet():
 
 # Adicionar uma coluna (YEAR) para depois fazer partição por essa coluna mais abrangente e utilizando-a nas queries para permitir partition pruning
 def q1_add_year_partition():
-    answers = answers.withColumn('creationyear', year(answers.CreationDate)).select('OwnerUserId', 'CreationDate', 'creationyear')
-    answers.write.parquet(f'{Q1_PATH}answers_parquet_part_year', partitionBy='creationyear')
-    questions = questions.withColumn('creationyear', year(questions.CreationDate)).select('OwnerUserId', 'CreationDate', 'creationyear')
-    questions.write.parquet(f'{Q1_PATH}questions_parquet_part_year', partitionBy='creationyear')
-    comments = comments.withColumn('creationyear', year(comments.CreationDate)).select('UserId', 'CreationDate', 'creationyear')
-    comments.write.parquet(f'{Q1_PATH}comments_parquet_part_year', partitionBy='creationyear')
+    new_answers = answers.withColumn('creationyear', year(answers.CreationDate)).select('OwnerUserId', 'CreationDate', 'creationyear')
+    new_answers.write.parquet(f'{Q1_PATH}answers_parquet_part_year', partitionBy='creationyear')
+    new_questions = questions.withColumn('creationyear', year(questions.CreationDate)).select('OwnerUserId', 'CreationDate', 'creationyear')
+    new_questions.write.parquet(f'{Q1_PATH}questions_parquet_part_year', partitionBy='creationyear')
+    new_comments = comments.withColumn('creationyear', year(comments.CreationDate)).select('UserId', 'CreationDate', 'creationyear')
+    new_comments.write.parquet(f'{Q1_PATH}comments_parquet_part_year', partitionBy='creationyear')
 
 
 def q1_repartitionByRange():
@@ -112,8 +112,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Running pre-defined function...")
-        # q1_repartitionByRange()
-        q1_users()
+        # q1_users()
+        q1_add_year_partition()
+        q1_interactions_ordered_parquet()
 
 
     else:
