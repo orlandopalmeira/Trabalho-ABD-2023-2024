@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
-from pyspark.sql.functions import round as count, broadcast
-from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year
+from pyspark.sql.functions import round as spark_round
+from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -33,58 +33,49 @@ def showPartitionSize(df: DataFrame):
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
 
+    # questions_selected = questions.select("owneruserid", "creationdate")
+    # answers_selected = answers.select("owneruserid", "creationdate")
+    questions_selected = questions
+    answers_selected = answers
+    comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
+
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
 
-    # Filter antigo e mais simples sem utilização da nova coluna "year" #> removi o filter creationdate < now() porque não remove qualquer valor dado que não devem existir valores futuros (não sei bem se teve impacto, mas a primeira vez que testei isto depois de mudar, deu 9 secs, mas n voltou a dar)
-    # questions_agg = questions.filter((questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
-    # answers_agg = answers.filter((answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
-    # comments_agg = comments.filter((comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
+    interactions = (
+        questions_selected
+        .union(answers_selected)
+        .union(comments_selected)
+        .filter(col("creationdate").between(lower_interval, current_timestamp()))
+        .groupBy("owneruserid")
+        .agg(count("*").alias("interaction_count"))
+    )
 
-    # Filter and aggregate the questions, answers, and comments dataframes #> resultou numa melhoria de 11 secs para 8 secs
-    lower_interval_year = year(lower_interval)
-    questions_agg = questions.filter((questions["creationyear"] >= lower_interval_year) & (questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
-    answers_agg = answers.filter((answers["creationyear"] >= lower_interval_year) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
-    comments_agg = comments.filter((comments["creationyear"] >= lower_interval_year) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
-
-    # Filter and aggregate the questions, answers, and comments dataframes #> comparativamente à técnica com o ano como coluna, não se nota melhorias (8.7 secs em média)
-    # lower_interval_year_month = concat(year(lower_interval), lit('-'), month(lower_interval))
-    # questions_agg = questions.filter((questions["creationyearmonth"] >= lower_interval_year_month) & (questions["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("qcount"))
-    # answers_agg = answers.filter((answers["creationyearmonth"] >= lower_interval_year_month) & (answers["creationdate"] >= lower_interval)).groupBy("owneruserid").agg(count("*").alias("acount"))
-    # comments_agg = comments.filter((comments["creationyearmonth"] >= lower_interval_year_month) & (comments["creationdate"] >= lower_interval)).groupBy("userid").agg(count("*").alias("ccount"))
-
-    # Perform the joins #> troquei a ordem dos joins(questions_agg e answers_agg) e a query parece que está uns ms mais rapida. Também adicionei broadcast hints para tabelas mais pequenas. #! Talvez devesse ter outro formato com o df.hint("broadcast")
-    result_df = users\
-        .join(broadcast(answers_agg), users["id"] == answers_agg["owneruserid"], "left") \
-        .join(broadcast(questions_agg), users["id"] == questions_agg["owneruserid"], "left") \
-        .join(broadcast(comments_agg), users["id"] == comments_agg["userid"], "left") \
-        .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
-        .orderBy(col('total').desc())\
+    result_df = (
+        users
+        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
+        .select(
+            users["id"],
+            users["displayname"],
+            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
+        )
+        .orderBy(col("total").desc())
         .limit(100)
-    #! os resultados da query de baixo não mostram o user Comunity, (porque o join com os users é feito pelo id das answers e se não houver id das answers, perde-se a junção), mas a query de baixo tem a utilização de um hint(broadcast)
-    #! Provavelmente é para esquecer isto, só se merecer alguma atenção no sentido que se tentou fazer isto
-    # result_df = answers_agg\
-    #     .join(questions_agg, answers_agg["owneruserid"] == questions_agg["owneruserid"], "full") \
-    #     .join(comments_agg, answers_agg["owneruserid"] == comments_agg["userid"], "full").hint("broadcast") \
-    #     .join(users, answers_agg["owneruserid"] == users["id"] , "right") \
-    #     .select(col('id'), col('displayname'), (coalesce(col('qcount'), lit(0)) + coalesce(col('acount'), lit(0)) + coalesce(col('ccount'), lit(0))).alias('total'))\
-    #     .orderBy(col('total').desc())\
-    #     .limit(100)
-
-    # result_df.show()
+    )
+    
     return result_df.collect()
 
+
 @timeit
-def q1_clean(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
-    #* versão baseada va q1-v4
+def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
     
+    # questions_selected = questions.select("owneruserid", "creationdate")
+    # answers_selected = answers.select("owneruserid", "creationdate")
+    # comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
+
     #> Versão com a coluna creation_year
     questions_selected = questions.select("owneruserid", "creationdate", "creationyear")
     answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
     comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate", "creationyear")
-    ##
-    # questions_selected = questions.select("owneruserid", "creationdate")
-    # answers_selected = answers.select("owneruserid", "creationdate")
-    # comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
 
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
     lower_interval_year = year(lower_interval)
@@ -113,32 +104,6 @@ def q1_clean(users: DataFrame, questions: DataFrame, answers: DataFrame, comment
     
     return result_df.collect()
 
-@timeit
-def q1_cache(users: DataFrame, cache: DataFrame, interval: StringType = "6 months",) -> List[Row]:
-    #* versão baseada na q1-v4
-    
-    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
-    lower_interval_year = year(lower_interval)
-
-    interactions = (
-        cache.filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
-        .groupBy("owneruserid")
-        .agg(count("*").alias("interaction_count"))
-    )
-
-    result_df = (
-        users
-        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
-        .select(
-            users["id"],
-            users["displayname"],
-            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
-        )
-        .orderBy(col("total").desc())
-        .limit(100)
-    )
-    
-    return result_df.collect()
 
 @timeit
 def q1_new(users: DataFrame, interactions: DataFrame, interval: StringType = "6 months"):
@@ -158,7 +123,7 @@ def q1_new(users: DataFrame, interactions: DataFrame, interval: StringType = "6 
         .select(
             users["id"],
             users["displayname"],
-            coalesce(interactions["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
+            coalesce(interactions_grouped["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
         )
         .orderBy(col("total").desc())
         .limit(100)
@@ -247,7 +212,6 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
           .orderBy("window")
 
 
-@timeit
 def main():
     spark = SparkSession.builder \
             .master("spark://spark:7077") \
@@ -262,76 +226,48 @@ def main():
 
     data_to_path = "/app/stack/"
 
-    ##* RepartitionByRange WRITTEN
-    # answers = spark.read.parquet(f'{data_to_path}answers_parquet_range_rep')
-    # comments = spark.read.parquet(f'{data_to_path}comments_parquet_range_rep')
-    # questions = spark.read.parquet(f'{data_to_path}questions_parquet_range_rep')
-    ##* RepartitionByRange
-    # answers = spark.read.parquet(f'{data_to_path}answers_parquet')
-    # comments = spark.read.parquet(f'{data_to_path}comments_parquet')
-    # questions = spark.read.parquet(f'{data_to_path}questions_parquet')
-    # answers = answers.repartitionByRange('creationdate')
-    # comments = comments.repartitionByRange('creationdate')
-    # questions = questions.repartitionByRange('creationdate')
-    # print(answers.rdd.getNumPartitions())
-    ##* Year partitioning
-    answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_year')
-    comments = spark.read.parquet(f'{data_to_path}comments_parquet_part_year')
-    questions = spark.read.parquet(f'{data_to_path}questions_parquet_part_year')
-    ##* Year-month partitioning
-    # answers = spark.read.parquet(f'{data_to_path}answers_parquet_part_yearmonth')
-    # comments = spark.read.parquet(f'{data_to_path}comments_parquet_part_yearmonth')
-    # questions = spark.read.parquet(f'{data_to_path}questions_parquet_part_yearmonth')
-    
-    users = spark.read.parquet(f'{data_to_path}users_parquet')
-
-    badges = spark.read.parquet(f'{data_to_path}badges_parquet')
-    questionsLinks = spark.read.parquet(f'{data_to_path}questionsLinks_parquet')
-    questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
-    tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
-    votes = spark.read.parquet(f'{data_to_path}votes_parquet')
-    votesTypes = spark.read.parquet(f'{data_to_path}votesTypes_parquet') # tabela estática
-
     
     # Q1
     @timeit
     def w1():
-        for _ in range(5):
-            q1_clean(users, questions, answers, comments, '6 months')
+        # Reads
+        users = spark.read.parquet(f"{data_to_path}users_parquet")
+        questions = spark.read.parquet(f"{data_to_path}questions_creationdate_ordered")
+        answers = spark.read.parquet(f"{data_to_path}answers_creationdate_ordered")
+        comments = spark.read.parquet(f"{data_to_path}comments_creationdate_ordered")
+        
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
 
     @timeit
-    def w1_avg():
-        q1_clean(users, questions, answers, comments, '6 months')
-        q1_clean(users, questions, answers, comments, '6 months')
-        q1_clean(users, questions, answers, comments, '6 months')
-        q1_clean(users, questions, answers, comments, '6 months')
-        q1_clean(users, questions, answers, comments, '6 months')
+    def w1_year():
+        # Reads
+        users = spark.read.parquet(f"{data_to_path}users_parquet")
+        questions = spark.read.parquet(f"{data_to_path}questions_parquet_part_year")
+        answers = spark.read.parquet(f"{data_to_path}answers_parquet_part_year")
+        comments = spark.read.parquet(f"{data_to_path}comments_parquet_part_year")
 
-    @timeit
-    def w1_cache():
-        #> Versão com a coluna creation_year
-        questions_selected = questions.select("owneruserid", "creationdate", "creationyear")
-        answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
-        comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate", "creationyear")
+        q1_year(users, questions, answers, comments, '6 months')
+        q1_year(users, questions, answers, comments, '6 months')
+        q1_year(users, questions, answers, comments, '6 months')
+        q1_year(users, questions, answers, comments, '6 months')
+        q1_year(users, questions, answers, comments, '6 months')
 
-        interactions = (
-            questions_selected
-            .union(answers_selected)
-            .union(comments_selected)
-        ).cache()
-
-        q1_cache(users, interactions, '6 months')
-        q1_cache(users, interactions, '6 months')
-        q1_cache(users, interactions, '6 months')
-        q1_cache(users, interactions, '6 months')
-        q1_cache(users, interactions, '6 months')
 
     @timeit
     def w1_new():
+        # Reads
         interactions = spark.read.parquet(f"{data_to_path}interactions_ordered_parquet")
         users = spark.read.parquet(f"{data_to_path}users_parquet")
-        for _ in range(5):
-            q1_new(users, interactions, '6 months')
+        
+        q1_new(users, interactions, '6 months')
+        q1_new(users, interactions, '6 months')
+        q1_new(users, interactions, '6 months')
+        q1_new(users, interactions, '6 months')
+        q1_new(users, interactions, '6 months')
 
     # Q2
     @timeit
@@ -341,6 +277,11 @@ def main():
     # Q3
     @timeit
     def w3():
+        # Reads
+        tags = spark.read.parquet(f'{data_to_path}tags_parquet') # tabela estática
+        questionsTags = spark.read.parquet(f'{data_to_path}questionsTags_parquet')
+        answers = spark.read.parquet(f'{data_to_path}answers_parquet')
+
         q3(tags, questionsTags, answers, 10)
 
     
@@ -378,6 +319,9 @@ def main():
     # Q4
     @timeit
     def w4():
+        badges = spark.read.parquet(f'{data_to_path}badges_parquet')
+        
+        # TODO METER ESTA FILTERED_BADGES EM FICHEIRO
         # q4(badges, "1 minute")
         filtered_badges = badges.filter(
             (col("tagbased") == False) &
@@ -398,7 +342,6 @@ def main():
     
 
 
-    ## Maneira dinamica de chamar as queries (mas ainda tenho de ver como funciona caches e assim neste caso. Talvez precise de englobar as queries em workloads)
     if len(sys.argv) < 2:
         print("Running all queries...")
         w1()
@@ -407,37 +350,19 @@ def main():
         w4()
     elif sys.argv[1] == "t":
         print("TEST DEBUGGING!")
+        print("W1")
+        w1()
+        print("W1_YEAR")
+        w1_year()
+        print("W1_NEW")
+        w1_new()
 
 
     else:
         locals()[sys.argv[1]]()
 
 
-
 if __name__ == '__main__':
     main()
 
     
-    
-    
-    
-    
-
-    # tables = ['Answers', 'Badges', 'Comments', 'Questions', 'QuestionsLinks', 'QuestionsTags', 'Tags', 'Users', 'Votes', 'VotesTypes']
-    # for table in tables:
-    #     print(f"Loading {table}...")
-    #     df = spark.read.csv(f"{data_to_path}{table}.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    #     df.createOrReplaceTempView(table.lower())
-    # Loading csv files
-    # print("Loading csv data...")
-    # answers_csv = spark.read.csv(f"{data_to_path}Answers.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # badges_csv = spark.read.csv(f"{data_to_path}Badges.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # comments_csv = spark.read.csv(f"{data_to_path}Comments.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questions_csv = spark.read.csv(f"{data_to_path}Questions.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questionsLinks_csv = spark.read.csv(f"{data_to_path}QuestionsLinks.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # questionsTags_csv = spark.read.csv(f"{data_to_path}QuestionsTags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # tags_csv = spark.read.csv(f"{data_to_path}Tags.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # users_csv = spark.read.csv(f"{data_to_path}Users.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # votes_csv = spark.read.csv(f"{data_to_path}Votes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # votesTypes_csv = spark.read.csv(f"{data_to_path}VotesTypes.csv", header=True, inferSchema=True, multiLine=True, escape='\"')
-    # print("CSV data loaded.")
