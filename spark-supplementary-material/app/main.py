@@ -224,12 +224,13 @@ def main():
             .master("spark://spark:7077") \
             .config("spark.eventLog.enabled", "true") \
             .config("spark.eventLog.dir", "/tmp/spark-events") \
-            .config("spark.executor.memory", "1g") \
             .config("spark.sql.adaptive.enabled", "true") \
+            .config("spark.executor.instances", 8) \
+            .config("spark.driver.memory", "8g") \
             .getOrCreate()
-            # .config("spark.driver.memory", "4g") \
-            # .config("spark.executor.cores", "2") \
             # .config("spark.executor.instances", 3) \
+            # .config("spark.executor.cores", "2") \
+            # .config("spark.executor.memory", "1g") \
 
 
 
@@ -247,7 +248,7 @@ def main():
         q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
 
-        write_result(res, "w1.csv")
+        # write_result(res, "w1.csv")
 
     def w1_year():
         # Reads
@@ -262,7 +263,7 @@ def main():
         q1_year(users, questions, answers, comments, '6 months')
         q1_year(users, questions, answers, comments, '6 months')
 
-        write_result(res, "w1-year.csv")
+        # write_result(res, "w1-year.csv")
 
 
     def w1_int_mv():
@@ -276,7 +277,7 @@ def main():
         q1_interactions_mv(users, interactions, '6 months')
         q1_interactions_mv(users, interactions, '6 months')
 
-        write_result(res, "w1-int-mv.csv")
+        # write_result(res, "w1-int-mv.csv")
 
 
     def w1_range():
@@ -293,7 +294,7 @@ def main():
         q1(users, questions, answers, comments, '6 months')
         q1(users, questions, answers, comments, '6 months')
 
-        write_result(res, "w1-range.csv")
+        # write_result(res, "w1-range.csv")
 
     # Q2
     def w2():
