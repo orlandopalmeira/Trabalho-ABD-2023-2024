@@ -150,29 +150,33 @@ def q2_gen_files():
 
 #* Q3
 Q3_PATH = f"{path_to_data}Q3/"
+def q3_create_files():
+    tags.write.parquet(f'{Q3_PATH}tags_parquet')
+    questionsTags.write.parquet(f'{Q3_PATH}questionsTags_parquet')
+    answers.write.parquet(f'{Q3_PATH}answers_parquet')
 
 def q3_create_mv():
     questionsTags.createOrReplaceTempView("questionstags")
     answers.createOrReplaceTempView("answers")
     tags.createOrReplaceTempView("tags")
     spark.sql("""
-        SELECT qt.tagid, t.tagname, qt.questionid, COUNT(*) AS total
+        SELECT qt.tagid, qt.questionid, COUNT(*) AS total
         FROM questionstags qt
         LEFT JOIN answers a ON a.parentid = qt.questionid
-        LEFT JOIN tags t ON t.id = qt.tagid
-        GROUP BY qt.tagid, qt.questionid, t.tagname
+        GROUP BY qt.tagid, qt.questionid
     """).createOrReplaceTempView("TagQuestionCounts")
     spark.sql("""
-        SELECT tagid, COUNT(*) as tag_count
-        FROM TagQuestionCounts
-        GROUP BY tagid
+        SELECT tagid, tagname, count(*) as tag_count
+        FROM TagQuestionCounts tqc
+        LEFT JOIN tags t ON t.id = tqc.tagid
+        GROUP BY tagid, tagname
     """).createOrReplaceTempView("FilteredTags")
     result = spark.sql("""
-        SELECT tqc.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count, COUNT(*)
+        SELECT ft.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count as count
         FROM TagQuestionCounts tqc
         JOIN FilteredTags ft ON ft.tagid = tqc.tagid
-        GROUP BY tqc.tagname, ft.tag_count"""
-    )
+        GROUP BY ft.tagname, ft.tag_count
+    """)
     result.write.parquet(f"{Q3_PATH}mv_q3.parquet")
 
 

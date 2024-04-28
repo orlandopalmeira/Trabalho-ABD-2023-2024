@@ -193,23 +193,15 @@ def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLi
                                    .agg(spark_round(avg("tqc.total"), 3).alias("avg_total"), count("*").alias("tag_count")) \
                                    .orderBy("avg_total", "tag_count", "t.tagname").sort(desc("avg_total"), desc("tag_count"), asc("t.tagname"))
 
-    result_df.write.csv("stack/res-q3.csv")
+    # result_df.write.csv("stack/res-q3.csv")
 
     return result_df.collect()
 
 @timeit
 def q3_mv(mat_view: DataFrame, inferiorLimit: IntegerType = 10):
     # q3 com vista materializada
-    result = (
-        mat_view.select(
-            "tagname", 
-            col("round(avg(total), 3)").alias("round"), 
-            col("count(1)").alias("count")
-        )
-        .filter(col("tag_count") > inferiorLimit)
-        .orderBy(col("round").desc(), col("count").desc(), "tagname")
-    )
-    
+    result = mat_view.filter(col("count") > inferiorLimit)
+    # result.write.csv("stack/res-q3-MV.csv")
     return result.collect()
 
 @timeit
@@ -321,13 +313,14 @@ def main():
         questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
         answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
 
-        q3(tags, questionsTags, answers, 10)
+        for i in range(1):
+            q3(tags, questionsTags, answers, 10)
 
     
     def w3_mv():
         mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_q3.parquet")
 
-        for i in range(10):
+        for i in range(1):
             q3_mv(mat_view_q3, 10)
 
     # Q4
