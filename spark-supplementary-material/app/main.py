@@ -295,6 +295,19 @@ def main():
 
         # write_result(res, "w1-range.csv")
 
+    def w1_zip():
+        # Reads
+        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname_zip")
+        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_zip")
+        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_zip")
+        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_zip")
+        
+        res=q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+        q1(users, questions, answers, comments, '6 months')
+
+        # write_result(res, "w1-zip.csv")
+
     # Q2
     def w2():
         q2()

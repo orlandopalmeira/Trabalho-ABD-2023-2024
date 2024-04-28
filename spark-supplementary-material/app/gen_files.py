@@ -1,4 +1,4 @@
-import sys
+import sys, inspect
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import col, year
 
@@ -52,10 +52,11 @@ def q1_users():
     new_users = users.select("id", "displayname")
     new_users.write.parquet(f'{Q1_PATH}users_id_displayname')
 
-def q1_ans_questions_comments_ord():
+def q1_3t_ord():
     answers_ordered = answers.select('owneruserid', 'creationdate').orderBy('CreationDate')
     questions_ordered = questions.select('owneruserid', 'creationdate').orderBy('CreationDate')
     comments_ordered = comments.select(col('userid').alias('owneruserid'), 'creationdate').orderBy('CreationDate')
+
     answers_ordered.write.parquet(f'{Q1_PATH}answers_creationdate_ordered')
     questions_ordered.write.parquet(f'{Q1_PATH}questions_creationdate_ordered')
     comments_ordered.write.parquet(f'{Q1_PATH}comments_creationdate_ordered')
@@ -105,6 +106,18 @@ def q1_repartitionByRange():
     questions_rep.write.parquet(f'{Q1_PATH}questions_creationdate_reprange')
     comments_rep.write.parquet(f'{Q1_PATH}comments_creationdate_reprange')
 
+def q1_zip():
+    users_zip = users.select('id', 'displayname').orderBy('id')
+    answers_zip = answers.select('owneruserid', 'creationdate').orderBy('CreationDate')
+    questions_zip = questions.select('owneruserid', 'creationdate').orderBy('CreationDate')
+    comments_zip = comments.select(col('userid').alias('owneruserid'), 'creationdate').orderBy('CreationDate')
+
+    users_zip.write.parquet(f'{Q1_PATH}users_id_displayname_zip', compression='gzip')
+    answers_zip.write.parquet(f'{Q1_PATH}answers_creationdate_zip', compression='gzip')
+    questions_zip.write.parquet(f'{Q1_PATH}questions_creationdate_zip', compression='gzip')
+    comments_zip.write.parquet(f'{Q1_PATH}comments_creationdate_zip', compression='gzip')
+
+
 
 #* Q2
 Q2_PATH = f"{path_to_data}Q2/"
@@ -152,8 +165,18 @@ if __name__ == "__main__":
         # q1_users()
         # q1_add_year_partition()
         # q1_interactions_ordered_parquet()
-        q1_interactions_year_partition
+        q1_3t_ord()
+        q1_zip()
 
+    elif sys.argv[1] == "all":
+
+        # Get a list of all functions in the current module
+        functions = [o for o in inspect.getmembers(sys.modules[__name__]) if inspect.isfunction(o[1])]
+
+        # Iterate over the list and call each function
+        for function in functions:
+            print(f"Running {function[0]}...")
+            function[1]()
 
     else:
         print("Running custom function...")
