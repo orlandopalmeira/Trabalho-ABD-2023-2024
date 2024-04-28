@@ -13,19 +13,12 @@ WITH year_range AS (
 SELECT year, reputation_range, count(u.id) total
 FROM buckets
 LEFT JOIN (
-    SELECT id, creationdate, reputation
-    FROM users
-    WHERE id in (
-        SELECT a.owneruserid
-        FROM answers a
-        WHERE a.id IN (
-            SELECT postid
-            FROM votes v
-            JOIN votestypes vt ON vt.id = v.votetypeid
-            WHERE vt.name = 'AcceptedByOriginator'
-                AND v.creationdate >= NOW() - INTERVAL '5 year'
-        )
-    )
+    SELECT DISTINCT u.id, u.creationdate, u.reputation
+    FROM users u
+    JOIN answers a ON a.owneruserid = u.id
+    JOIN votes v ON a.id = v.postid
+    JOIN votestypes vt ON vt.id = v.votetypeid
+    WHERE vt.name = 'AcceptedByOriginator' AND v.creationdate >= NOW() - INTERVAL '5 year'
 ) u ON extract(year FROM u.creationdate) = year AND floor(u.reputation / 5000) * 5000 = reputation_range
 GROUP BY 1, 2
 ORDER BY 1, 2;
