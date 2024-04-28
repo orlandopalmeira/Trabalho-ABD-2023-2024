@@ -330,26 +330,11 @@ def main():
 
     # Q4
     def w4():
-        badges = spark.read.parquet(f'{Q4_PATH}badges_parquet')
-        
-        # TODO METER ESTA FILTERED_BADGES EM FICHEIRO
-        # q4(badges, "1 minute")
-        filtered_badges = badges.filter(
-            (col("tagbased") == False) &
-            (~col("name").isin(
-                'Analytical',
-                'Census',
-                'Documentation Beta',
-                'Documentation Pioneer',
-                'Documentation User',
-                'Reversal',
-                'Tumbleweed'
-            )) &
-            (col("class").isin(1, 2, 3)) &
-            (col("userid") != -1)
-        ).select("date").cache()
-    
-        q4(filtered_badges, "1 minute")
+        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view.parquet")
+        q4(mv_badges, "1 minute")
+        q4(mv_badges, "1 minute")
+        q4(mv_badges, "1 minute")
+        q4(mv_badges, "1 minute")
     
 
 

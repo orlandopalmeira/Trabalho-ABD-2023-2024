@@ -21,6 +21,8 @@ WHERE NOT tagbased
     AND class in (1, 2, 3)
     AND userid <> -1;
 
+
+
 CREATE OR REPLACE FUNCTION refresh_badges_mat_view()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -29,20 +31,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 CREATE TRIGGER trigger_refresh_badges_mat_view
 AFTER INSERT OR DELETE ON badges
 FOR EACH STATEMENT
 EXECUTE FUNCTION refresh_badges_mat_view();
 
+
+
+
+
 -- DROP all the that was created before
 DROP MATERIALIZED VIEW IF EXISTS badges_mat_view CASCADE;
 DROP TRIGGER trigger_refresh_badges_mat_view ON badges;
 DROP FUNCTION refresh_badges_mat_view();
-
--- List all triggers
-SELECT tgname AS trigger_name,
-       tgrelid::regclass AS table_name,
-       tgfoid::regprocedure AS trigger_function,
-       tgenabled AS trigger_status
-FROM pg_trigger;
 

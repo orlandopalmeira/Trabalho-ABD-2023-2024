@@ -118,6 +118,16 @@ def q1_zip():
     comments_zip.write.parquet(f'{Q1_PATH}comments_creationdate_zip', compression='gzip')
 
 
+def q1_gen_files():
+    q1_users()
+    q1_3t_ord()
+    q1_interactions_ordered_parquet()
+    q1_add_year_partition()
+    q1_interactions_year_partition()
+    q1_repartitionByRange()
+    q1_zip()
+
+
 
 #* Q2
 Q2_PATH = f"{path_to_data}Q2/"
@@ -170,29 +180,46 @@ def q3_create_mv():
 #* Q4
 Q4_PATH = f"{path_to_data}Q4/"
 
+def q4_create_badges_mv():
+    mat_view = spark.sql("""
+    SELECT date
+    FROM badges
+    WHERE NOT tagbased
+        AND name NOT IN (
+            'Analytical',
+            'Census',
+            'Documentation Beta',
+            'Documentation Pioneer',
+            'Documentation User',
+            'Reversal',
+            'Tumbleweed'
+        )
+        AND class in (1, 2, 3)
+        AND userid <> -1 """)
+    
+    mat_view.write.parquet(f"{Q4_PATH}badges_mat_view.parquet")
+
+
+def q4_gen_files():
+    q4_create_badges_mv()
+    
+
 
 
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Running pre-defined function...")
-        # q1_users()
-        # q1_add_year_partition()
-        # q1_interactions_ordered_parquet()
-        q1_3t_ord()
-        q1_zip()
+        q4_create_badges_mv()
 
     elif sys.argv[1] == "all":
-
-        # Get a list of all functions in the current module
+        print("Running all functions defined in the file...")
         functions = [o for o in inspect.getmembers(sys.modules[__name__]) if inspect.isfunction(o[1])]
 
-        # Iterate over the list and call each function
         for function in functions:
             print(f"Running {function[0]}...")
             function[1]()
 
     else:
         print("Running custom function...")
-
         locals()[sys.argv[1]]()
