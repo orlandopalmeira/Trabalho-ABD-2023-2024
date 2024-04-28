@@ -181,6 +181,8 @@ def q3_create_mv():
 Q4_PATH = f"{path_to_data}Q4/"
 
 def q4_create_badges_mv():
+    badges.createOrReplaceTempView("badges")
+
     mat_view = spark.sql("""
     SELECT date
     FROM badges
@@ -197,11 +199,34 @@ def q4_create_badges_mv():
         AND class in (1, 2, 3)
         AND userid <> -1 """)
     
-    mat_view.write.parquet(f"{Q4_PATH}badges_mat_view.parquet")
+    mat_view.write.parquet(f"{Q4_PATH}badges_mat_view")
+
+def q4_create_badges_mv_ord():
+    badges.createOrReplaceTempView("badges")
+
+    mat_view = spark.sql("""
+    SELECT date
+    FROM badges
+    WHERE NOT tagbased
+        AND name NOT IN (
+            'Analytical',
+            'Census',
+            'Documentation Beta',
+            'Documentation Pioneer',
+            'Documentation User',
+            'Reversal',
+            'Tumbleweed'
+        )
+        AND class in (1, 2, 3)
+        AND userid <> -1 """).orderBy("date")
+    
+    mat_view.write.parquet(f"{Q4_PATH}badges_mat_view_ord")
 
 
-def q4_gen_files():
+
+def q4():
     q4_create_badges_mv()
+    q4_create_badges_mv_ord()
     
 
 

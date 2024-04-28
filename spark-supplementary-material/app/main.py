@@ -330,7 +330,8 @@ def main():
 
     # Q4
     def w4():
-        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view.parquet")
+        mv_badges_ord = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
         q4(mv_badges, "1 minute")
         q4(mv_badges, "1 minute")
         q4(mv_badges, "1 minute")
@@ -345,15 +346,7 @@ def main():
         w3()
         w4()
     elif sys.argv[1] == "t":
-        print("W1")
-        w1()
-        print("W1_YEAR")
-        w1_year()
-        print("W1_NEW")
-        w1_int_mv()
-        print("W1_RANGE")
-        w1_range()
-
+        pass
 
     else:
         locals()[sys.argv[1]]()
