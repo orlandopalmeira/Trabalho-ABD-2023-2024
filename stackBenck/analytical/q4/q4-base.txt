@@ -1,0 +1,35 @@
+                                                                                                                                QUERY PLAN                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=1130312.65..1161034.30 rows=120077 width=16) (actual time=5817.284..6455.421 rows=1883942 loops=1)
+   Group Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+   Buffers: shared hit=250 read=237664, temp read=142286 written=209553
+   ->  Gather Merge  (cost=1130312.65..1158332.57 rows=240154 width=16) (actual time=5817.246..6134.993 rows=1888003 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=250 read=237664, temp read=142286 written=209553
+         ->  Sort  (cost=1129312.63..1129612.82 rows=120077 width=16) (actual time=5797.320..5868.743 rows=629334 loops=3)
+               Sort Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+               Sort Method: external merge  Disk: 16120kB
+               Buffers: shared hit=250 read=237664, temp read=142286 written=209553
+               Worker 0:  Sort Method: external merge  Disk: 16152kB
+               Worker 1:  Sort Method: external merge  Disk: 15864kB
+               ->  Partial HashAggregate  (cost=1047010.71..1117127.47 rows=120077 width=16) (actual time=4190.406..5618.840 rows=629334 loops=3)
+                     Group Key: date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone)
+                     Batches: 21  Memory Usage: 8249kB  Disk Usage: 243576kB
+                     Buffers: shared hit=236 read=237664, temp read=136269 written=203507
+                     Worker 0:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 243952kB
+                     Worker 1:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 239688kB
+                     ->  Parallel Seq Scan on badges  (cost=0.00..552976.97 rows=8782822 width=8) (actual time=104.097..2573.826 rows=9097158 loops=3)
+                           Filter: ((NOT tagbased) AND (userid <> '-1'::integer) AND (class = ANY ('{1,2,3}'::integer[])) AND ((name)::text <> ALL ('{Analytical,Census,"Documentation Beta","Documentation Pioneer","Documentation User",Reversal,Tumbleweed}'::text[])))
+                           Rows Removed by Filter: 283063
+                           Buffers: shared hit=236 read=237664
+ Planning:
+   Buffers: shared hit=235
+ Planning Time: 0.613 ms
+ JIT:
+   Functions: 36
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 2.529 ms, Inlining 185.715 ms, Optimization 98.351 ms, Emission 73.679 ms, Total 360.275 ms
+ Execution Time: 6572.975 ms
+(31 rows)
+

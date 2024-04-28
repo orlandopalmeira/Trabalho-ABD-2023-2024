@@ -1,0 +1,33 @@
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=1015538.02..1065895.88 rows=196826 width=16) (actual time=4183.117..4815.656 rows=1883942 loops=1)
+   Group Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+   Buffers: shared hit=2094 read=118688, temp read=142249 written=209689
+   ->  Gather Merge  (cost=1015538.02..1061467.30 rows=393652 width=16) (actual time=4183.072..4500.598 rows=1888095 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=2094 read=118688, temp read=142249 written=209689
+         ->  Sort  (cost=1014538.00..1015030.06 rows=196826 width=16) (actual time=4160.639..4231.552 rows=629365 loops=3)
+               Sort Key: (date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone))
+               Sort Method: external merge  Disk: 16144kB
+               Buffers: shared hit=2094 read=118688, temp read=142249 written=209689
+               Worker 0:  Sort Method: external merge  Disk: 16056kB
+               Worker 1:  Sort Method: external merge  Disk: 15936kB
+               ->  Partial HashAggregate  (cost=902562.88..993863.54 rows=196826 width=16) (actual time=2567.579..3983.506 rows=629365 loops=3)
+                     Group Key: date_bin('00:01:00'::interval, date, '2008-01-01 00:00:00'::timestamp without time zone)
+                     Planned Partitions: 4  Batches: 21  Memory Usage: 8249kB  Disk Usage: 242456kB
+                     Buffers: shared hit=2080 read=118688, temp read=136232 written=203643
+                     Worker 0:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 243616kB
+                     Worker 1:  Batches: 21  Memory Usage: 8249kB  Disk Usage: 242464kB
+                     ->  Parallel Seq Scan on badges_mat_view  (cost=0.00..262912.52 rows=11371562 width=8) (actual time=93.784..1017.853 rows=9097158 loops=3)
+                           Buffers: shared hit=2080 read=118688
+ Planning:
+   Buffers: shared hit=41
+ Planning Time: 0.219 ms
+ JIT:
+   Functions: 30
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 2.018 ms, Inlining 184.622 ms, Optimization 81.260 ms, Emission 61.560 ms, Total 329.461 ms
+ Execution Time: 4936.417 ms
+(29 rows)
+
