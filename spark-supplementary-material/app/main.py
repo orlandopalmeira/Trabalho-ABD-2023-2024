@@ -214,9 +214,11 @@ def q3_mv(mat_view: DataFrame, inferiorLimit: IntegerType = 10):
 
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
-    return badges.groupBy(window(col("date"), "1 minute", startTime='2008-01-01 00:00:00')) \
+    result = badges.groupBy(window(col("date"), "1 minute")) \
           .agg(count("*").alias("count")) \
           .orderBy("window")
+    
+    return result.collect()
 
 
 def main():
