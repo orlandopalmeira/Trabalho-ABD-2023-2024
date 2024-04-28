@@ -132,19 +132,21 @@ def q1_gen_files():
 #* Q2
 Q2_PATH = f"{path_to_data}Q2/"
 
-def q2_bucket():
+def q2():
     year_range = spark.range(2008, int(spark.sql("SELECT year(CURRENT_DATE)").collect()[0][0] + 1), 1).toDF("year")
     max_reputation_per_year = users \
                                 .withColumn("year", expr("year(creationdate)")) \
                                 .groupBy("year") \
                                 .agg({"reputation": "max"}) \
                                 .withColumnRenamed("max(reputation)", "max_rep")
-    buckets = year_range.join(max_reputation_per_year, year_range.year == max_reputation_per_year.year, "left") \
-                        .select(year_range.year, expr("sequence(0, IFNULL(max_rep, 0), 5000) as reputation_range"))
-    buckets.write.parquet(f'{Q2_PATH}buckets')
 
-def q2_gen_files():
-    q2_bucket()
+    # gerar fich de users, answers, votes e votestypes (com as restriçoes da query)
+
+    year_range.write.parquet(f'{Q2_PATH}year_range')
+    max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
+    #buckets = year_range.join(max_reputation_per_year, year_range.year == max_reputation_per_year.year, "left") \
+    #                    .select(year_range.year, expr("sequence(0, IFNULL(max_rep, 0), 5000) as reputation_range"))
+    #buckets.write.parquet(f'{Q2_PATH}buckets')
 
 
 
