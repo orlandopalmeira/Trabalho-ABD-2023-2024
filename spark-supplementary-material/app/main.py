@@ -332,8 +332,8 @@ def main():
 
     # Q4
     def w4():
-        mv_badges_ord = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
-        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
+        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+        # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
         q4(mv_badges, "1 minute")
         q4(mv_badges, "1 minute")
         q4(mv_badges, "1 minute")
