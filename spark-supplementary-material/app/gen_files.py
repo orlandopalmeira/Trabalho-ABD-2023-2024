@@ -140,10 +140,19 @@ def q2():
                                 .agg({"reputation": "max"}) \
                                 .withColumnRenamed("max(reputation)", "max_rep")
 
-    # gerar fich de users, answers, votes e votestypes (com as restriçoes da query)
+    users_selected = users.select('id','creationdate','reputation')
+    answers_selected = answers
+    votes_selected = votes
+    votesTypes_selected = votesTypes
+
 
     year_range.write.parquet(f'{Q2_PATH}year_range')
     max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
+
+    users_selected.write.parquet(f'{Q2_PATH}users_selected')
+    answers_selected.write.parquet(f'{Q2_PATH}answers_selected')
+    votes_selected.write.parquet(f'{Q2_PATH}votes_selected')
+    votesTypes_selected.write.parquet(f'{Q2_PATH}votesTypes_selected')
     #buckets = year_range.join(max_reputation_per_year, year_range.year == max_reputation_per_year.year, "left") \
     #                    .select(year_range.year, expr("sequence(0, IFNULL(max_rep, 0), 5000) as reputation_range"))
     #buckets.write.parquet(f'{Q2_PATH}buckets')
