@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import round as spark_round
-from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window
+from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -143,9 +143,22 @@ def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: Stri
 
 
 @timeit
-# def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, interval: StringType = "5 years", bucketInterval : IntegerType = 5000):
-def q2():
-    pass
+def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, year_range: DataFrame, max_reputation_per_year : DataFrame,  interval: StringType = "5 years", bucketInterval: IntegerType = 5000):
+
+    # SELECT yr.year, generate_series(0, GREATEST(mr.max_rep,0), 5000) AS reputation_range
+    # FROM year_range yr
+    # LEFT JOIN max_reputation_per_year mr ON yr.year = mr.year
+
+    # juntar os dados de yr e mr
+    buckets = year_range.alias("yr").join(max_reputation_per_year.alias("mr"), year_range["year"] == max_reputation_per_year["year"], "left")
+
+    # gerar a coluna reputation_range
+    buckets = buckets.withColumn(
+                    "reputation_range",
+                    explode(sequence(lit(0), greatest(col("mr.max_rep"), lit(0)), lit(bucketInterval)))
+                )
+
+    buckets = buckets.select(col("yr.year").alias("year"), col("reputation_range"))
 
 @timeit
 def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
@@ -304,7 +317,17 @@ def main():
 
     # Q2
     def w2():
-        q2()
+
+        # Reads
+        users = spark.read.parquet(f"{Q2_PATH}users_selected")
+        answers = spark.read.parquet(f"{Q2_PATH}answers_selected")
+        votes = spark.read.parquet(f"{Q2_PATH}votes_selected")
+        votesTypes = spark.read.parquet(f"{Q2_PATH}votesTypes_selected")
+
+        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+
+        q2(users, answers, votes, votesTypes, year_range, max_reputation_per_year)
 
     # Q3
     def w3():
