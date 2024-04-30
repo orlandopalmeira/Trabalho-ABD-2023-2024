@@ -1,7 +1,9 @@
 #!/bin/bash
+# vm-down.sh -d -> Just deletes the vm instance and doesnt save the machine image
+# vm-down.sh -> Deletes the VM but also creates the machine image
 
 VM_NAME="vm-abd"
-
+has_d_flag=false
 # Iterate through arguments
 for arg in "$@"; do
     if [ "$arg" = "-d" ]; then
