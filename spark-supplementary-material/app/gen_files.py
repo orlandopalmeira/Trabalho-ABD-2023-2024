@@ -143,7 +143,7 @@ def q2():
     users_selected = users.select('id','creationdate','reputation')
     answers_selected = answers
     votes_selected = votes
-    votesTypes_selected = votesTypes
+    votesTypes_selected = votesTypes.filter(col("name") == "AcceptedByOriginator")
 
 
     year_range.write.parquet(f'{Q2_PATH}year_range')
