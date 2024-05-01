@@ -142,6 +142,18 @@ def q2():
 
     users_selected = users.select('id','creationdate','reputation')
     answers_selected = answers
+
+    join_user_answers = users_selected.join(
+                answers_selected.select('owneruserid').distinct(),
+                users_selected['id'] == answers_selected['owneruserid'],
+                'inner'
+            )
+
+    join_user_answers.show()
+
+    # juntar users com answers
+    # juntar resultado com votes
+
     votes_selected = votes
     votesTypes_selected = votesTypes.filter(col("name") == "AcceptedByOriginator")
 
