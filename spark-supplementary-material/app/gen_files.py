@@ -129,9 +129,7 @@ def q1_gen_files():
 
 
 
-#* Q2
-Q2_PATH = f"{path_to_data}Q2/"
-
+# Q2
 def q2():
     year_range = spark.range(2008, int(spark.sql("SELECT year(CURRENT_DATE)").collect()[0][0] + 1), 1).toDF("year")
     max_reputation_per_year = users \
@@ -141,30 +139,45 @@ def q2():
                                 .withColumnRenamed("max(reputation)", "max_rep")
 
     users_selected = users.select('id','creationdate','reputation')
-    answers_selected = answers
+
+    answers_selected = answers.select('owneruserid', 'id')
+    answers_selected = answers_selected.withColumnRenamed('id', 'answer_id')
+
+    votes_selected = votes.select('postid', 'creationdate', 'votetypeid')
+    votes_selected = votes_selected.withColumnRenamed('creationdate', 'votes_creationdate')
+
+    votesTypes_selected = votesTypes.filter(col("name") == "AcceptedByOriginator")
+    votesTypes_selected = votesTypes_selected.select('id')
+    votesTypes_selected = votesTypes_selected.withColumnRenamed('id', 'votesTypes_id')
 
     join_user_answers = users_selected.join(
-                answers_selected.select('owneruserid').distinct(),
+                answers_selected,
                 users_selected['id'] == answers_selected['owneruserid'],
                 'inner'
             )
 
-    join_user_answers.show()
+    join_user_answers = join_user_answers.select('id', 'creationdate', 'reputation', 'answer_id')
 
-    # juntar users com answers
-    # juntar resultado com votes
+    join_user_answers_votes = join_user_answers.join(
+                votes_selected,
+                join_user_answers['answer_id'] == votes_selected['postid'],
+                'inner'
+            )
 
-    votes_selected = votes
-    votesTypes_selected = votesTypes.filter(col("name") == "AcceptedByOriginator")
+    join_user_answers_votes = join_user_answers_votes.select('id', 'creationdate', 'reputation', 'votes_creationdate', 'votetypeid')
 
+    join_user_answers_votes_votesTypes = join_user_answers_votes.join(
+                votesTypes_selected,
+                join_user_answers_votes['votetypeid'] == votesTypes_selected['votesTypes_id'],
+                'inner'
+            )
+
+    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.select('id', 'creationdate', 'reputation', 'votes_creationdate')
 
     year_range.write.parquet(f'{Q2_PATH}year_range')
     max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
 
-    users_selected.write.parquet(f'{Q2_PATH}users_selected')
-    answers_selected.write.parquet(f'{Q2_PATH}answers_selected')
-    votes_selected.write.parquet(f'{Q2_PATH}votes_selected')
-    votesTypes_selected.write.parquet(f'{Q2_PATH}votesTypes_selected')
+    join_user_answers_votes_votesTypes.write.parquet(f'{Q2_PATH}join_user_answers_votes_votesTypes')
     #buckets = year_range.join(max_reputation_per_year, year_range.year == max_reputation_per_year.year, "left") \
     #                    .select(year_range.year, expr("sequence(0, IFNULL(max_rep, 0), 5000) as reputation_range"))
     #buckets.write.parquet(f'{Q2_PATH}buckets')
