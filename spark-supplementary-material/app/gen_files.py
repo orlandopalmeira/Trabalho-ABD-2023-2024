@@ -130,6 +130,8 @@ def q1_gen_files():
 
 
 # Q2
+Q2_PATH = f"{path_to_data}Q2/"
+
 def q2():
     year_range = spark.range(2008, int(spark.sql("SELECT year(CURRENT_DATE)").collect()[0][0] + 1), 1).toDF("year")
     max_reputation_per_year = users \
