@@ -382,15 +382,17 @@ def main():
     def w2():
 
         # Reads
-        users = spark.read.parquet(f"{Q2_PATH}users_selected")
-        answers = spark.read.parquet(f"{Q2_PATH}answers_selected")
-        votes = spark.read.parquet(f"{Q2_PATH}votes_selected")
-        votesTypes = spark.read.parquet(f"{Q2_PATH}votesTypes_selected")
-
         year_range = spark.read.parquet(f"{Q2_PATH}year_range")
         max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+        join_user_answers_votes_votesTypes = spark.read.parquet(f"{Q2_PATH}join_user_answers_votes_votesTypes")
 
-        q2(users, answers, votes, votesTypes, year_range, max_reputation_per_year)
+        res = q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+
+        #write_result(res, "w2.csv")
 
     # Q3
     def w3():
