@@ -221,7 +221,7 @@ def q2(year_range: DataFrame, max_reputation_per_year: DataFrame, join_user_answ
     result_df = joined_df.groupBy("year", "reputation_range").agg(count("id").alias("total"))
     result_df = result_df.orderBy("year", "reputation_range")
 
-    return result.df.collect()
+    return result_df.collect()
 
 @timeit
 def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
