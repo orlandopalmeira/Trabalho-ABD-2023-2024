@@ -1,12 +1,13 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import round as spark_round
-from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode
+from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode, floor
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
 from functools import wraps
 import sys
+import re
 
 data_to_path = "/app/stack/"
 Q1_PATH = f"{data_to_path}Q1/"
@@ -141,9 +142,31 @@ def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: Stri
     
     return result_df.collect()
 
+def parse_interval(interval):
+    """
+    Função para extrair o número e unidade do intervalo e calcular o número de dias correspondente.
+    """
+    # Use expressão regular para extrair número e unidade do intervalo
+    match = re.match(r"(\d+)\s+(\w+)", interval)
+    if match:
+        number = int(match.group(1))
+        unit = match.group(2).lower()
+
+        if unit.startswith("year"):
+            return number * 365
+        elif unit.startswith("month"):
+            return number * 30
+        elif unit.startswith("week"):
+            return number * 7
+        elif unit.startswith("day"):
+            return number
+        else:
+            raise ValueError(f"Unidade de intervalo não suportada: {unit}")
+    else:
+        raise ValueError(f"Formato de intervalo inválido: {interval}")
 
 @timeit
-def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataFrame, year_range: DataFrame, max_reputation_per_year : DataFrame,  interval: StringType = "5 years", bucketInterval: IntegerType = 5000):
+def q2(year_range: DataFrame, max_reputation_per_year: DataFrame, join_user_answers_votes_votesTypes: DataFrame,  interval: StringType = "5 years", bucketInterval: IntegerType = 5000):
 
     # SELECT yr.year, generate_series(0, GREATEST(mr.max_rep,0), 5000) AS reputation_range
     # FROM year_range yr
@@ -159,6 +182,46 @@ def q2(users: DataFrame, answers: DataFrame, votes: DataFrame, votesTypes: DataF
                 )
 
     buckets = buckets.select(col("yr.year").alias("year"), col("reputation_range"))
+
+    # SELECT id, creationdate, reputation
+    # FROM users
+    # WHERE id in (
+    #     SELECT a.owneruserid
+    #     FROM answers a
+    #     WHERE a.id IN (
+    #         SELECT postid
+    #         FROM votes v
+    #         JOIN votestypes vt ON vt.id = v.votetypeid
+    #         WHERE vt.name = 'AcceptedByOriginator'
+    #             AND v.creationdate >= NOW() - INTERVAL '5 year'
+    #     )
+    # )
+
+    interval_end_date_expr = expr(f"date_sub(current_date(), '{parse_interval(interval)}')")
+
+    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.filter(col('votes_creationdate') >= interval_end_date_expr)
+
+    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.select('id', 'creationdate', 'reputation')
+
+    # SELECT year, reputation_range, count(u.id) total
+    # FROM buckets
+    # LEFT JOIN (
+    #   <join_user_answers_votes_votesTypes>
+    # ) u ON extract(year FROM u.creationdate) = year AND floor(u.reputation / 5000) * 5000 = reputation_range
+    # GROUP BY 1, 2
+    # ORDER BY 1, 2;
+
+    u = join_user_answers_votes_votesTypes
+
+    u = u.withColumn("u_year", year("creationdate"))
+    u = u.withColumn("u_reputation_range", floor(u["reputation"] / 5000) * 5000)
+
+    joined_df = buckets.join(u, (buckets["year"] == u["u_year"]) & (buckets["reputation_range"] == u["u_reputation_range"]), "left")
+
+    result_df = joined_df.groupBy("year", "reputation_range").agg(count("id").alias("total"))
+    result_df = result_df.orderBy("year", "reputation_range")
+
+    return result.df.collect()
 
 @timeit
 def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
