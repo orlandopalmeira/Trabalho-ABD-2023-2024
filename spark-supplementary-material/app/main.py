@@ -1,7 +1,7 @@
 from typing import List
 from pyspark.sql import SparkSession, DataFrame, Row
 from pyspark.sql.functions import round as spark_round
-from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode, floor
+from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode, date_sub, current_timestamp, floor
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
 import time
@@ -142,9 +142,15 @@ def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: Stri
     
     return result_df.collect()
 
-def parse_interval(interval):
+def is_leap_year(year):
     """
-    Função para extrair o número e unidade do intervalo e calcular o número de dias correspondente.
+    Verifica se o ano é bissexto.
+    """
+    return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+
+def parse_interval_3(interval):
+    """
+    Função para extrair o número e unidade do intervalo e calcular o número de dias correspondente de forma precisa.
     """
     # Use expressão regular para extrair número e unidade do intervalo
     match = re.match(r"(\d+)\s+(\w+)", interval)
@@ -153,20 +159,27 @@ def parse_interval(interval):
         unit = match.group(2).lower()
 
         if unit.startswith("year"):
-            return number * 365
+            # Calcular o número exato de dias em 'number' anos considerando anos bissextos
+            days = sum(366 if is_leap_year(year) else 365 for year in range(1, number + 1))
         elif unit.startswith("month"):
-            return number * 30
+            # Calcular o número exato de dias em 'number' meses
+            days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            days = sum(days_in_month[:number])
         elif unit.startswith("week"):
-            return number * 7
+            # Calcular o número exato de dias em 'number' semanas
+            days = number * 7
         elif unit.startswith("day"):
-            return number
+            # 'number' dias
+            days = number
         else:
             raise ValueError(f"Unidade de intervalo não suportada: {unit}")
+
+        return days
     else:
         raise ValueError(f"Formato de intervalo inválido: {interval}")
 
 @timeit
-def q2(year_range: DataFrame, max_reputation_per_year: DataFrame, join_user_answers_votes_votesTypes: DataFrame,  interval: StringType = "5 years", bucketInterval: IntegerType = 5000):
+def q2(u: DataFrame, year_range: DataFrame,  max_reputation_per_year: DataFrame, interval: StringType = "5 years", bucketInterval: IntegerType = 5000):
 
     # SELECT yr.year, generate_series(0, GREATEST(mr.max_rep,0), 5000) AS reputation_range
     # FROM year_range yr
@@ -183,45 +196,24 @@ def q2(year_range: DataFrame, max_reputation_per_year: DataFrame, join_user_answ
 
     buckets = buckets.select(col("yr.year").alias("year"), col("reputation_range"))
 
-    # SELECT id, creationdate, reputation
-    # FROM users
-    # WHERE id in (
-    #     SELECT a.owneruserid
-    #     FROM answers a
-    #     WHERE a.id IN (
-    #         SELECT postid
-    #         FROM votes v
-    #         JOIN votestypes vt ON vt.id = v.votetypeid
-    #         WHERE vt.name = 'AcceptedByOriginator'
-    #             AND v.creationdate >= NOW() - INTERVAL '5 year'
-    #     )
-    # )
+    u = u.where(col("votes_creationdate") >= date_sub(current_timestamp(), parse_interval_3(interval))).select('id','creationdate','reputation').distinct()
+    u = u.withColumn("year", year(u["creationdate"]))
+    u = u.withColumn("reputation_range", floor(u["reputation"] / bucketInterval) * bucketInterval)
+    u = u.withColumnRenamed("year", "u_year")
+    u = u.withColumnRenamed("reputation_range", "u_rg")
 
-    interval_end_date_expr = expr(f"date_sub(current_date(), '{parse_interval(interval)}')")
+    joined_df = buckets.join(u,
+                         (buckets["year"] == u["u_year"]) &
+                         (buckets["reputation_range"] == u["u_rg"]),
+                         "left")
 
-    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.filter(col('votes_creationdate') >= interval_end_date_expr)
+    result_df = joined_df.groupBy("year", "reputation_range") \
+                     .agg({"id": "count"}) \
+                     .withColumnRenamed("count(id)", "total")
 
-    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.select('id', 'creationdate', 'reputation')
+    sorted_result_df = result_df.orderBy("year", "reputation_range")
 
-    # SELECT year, reputation_range, count(u.id) total
-    # FROM buckets
-    # LEFT JOIN (
-    #   <join_user_answers_votes_votesTypes>
-    # ) u ON extract(year FROM u.creationdate) = year AND floor(u.reputation / 5000) * 5000 = reputation_range
-    # GROUP BY 1, 2
-    # ORDER BY 1, 2;
-
-    u = join_user_answers_votes_votesTypes
-
-    u = u.withColumn("u_year", year("creationdate"))
-    u = u.withColumn("u_reputation_range", floor(u["reputation"] / 5000) * 5000)
-
-    joined_df = buckets.join(u, (buckets["year"] == u["u_year"]) & (buckets["reputation_range"] == u["u_reputation_range"]), "left")
-
-    result_df = joined_df.groupBy("year", "reputation_range").agg(count("id").alias("total"))
-    result_df = result_df.orderBy("year", "reputation_range")
-
-    return result_df.collect()
+    return sorted_result_df.collect()
 
 @timeit
 def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
@@ -384,13 +376,13 @@ def main():
         # Reads
         year_range = spark.read.parquet(f"{Q2_PATH}year_range")
         max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
-        join_user_answers_votes_votesTypes = spark.read.parquet(f"{Q2_PATH}join_user_answers_votes_votesTypes")
+        u = spark.read.parquet(f"{Q2_PATH}u")
 
-        res = q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
-        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
-        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
-        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
-        q2(year_range, max_reputation_per_year, join_user_answers_votes_votesTypes)
+        res=q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
 
         #write_result(res, "w2.csv")
 
