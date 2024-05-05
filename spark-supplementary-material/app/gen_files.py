@@ -143,46 +143,33 @@ def q2():
     users_selected = users.select('id','creationdate','reputation')
 
     answers_selected = answers.select('owneruserid', 'id')
-    answers_selected = answers_selected.withColumnRenamed('id', 'answer_id')
+    #answers_selected = answers_selected.withColumnRenamed('id', 'answer_id')
 
     votes_selected = votes.select('postid', 'creationdate', 'votetypeid')
     votes_selected = votes_selected.withColumnRenamed('creationdate', 'votes_creationdate')
 
     votesTypes_selected = votesTypes.filter(col("name") == "AcceptedByOriginator")
     votesTypes_selected = votesTypes_selected.select('id')
-    votesTypes_selected = votesTypes_selected.withColumnRenamed('id', 'votesTypes_id')
+    #votesTypes_selected = votesTypes_selected.withColumnRenamed('id', 'votesTypes_id')
 
-    join_user_answers = users_selected.join(
-                answers_selected,
-                users_selected['id'] == answers_selected['owneruserid'],
-                'inner'
-            )
+    accepted_answers = (
+        votes_selected.join(votesTypes_selected, votes_selected["votetypeid"] == votesTypes_selected["id"])
+            .select("postid", "votes_creationdate")
+    )
 
-    join_user_answers = join_user_answers.select('id', 'creationdate', 'reputation', 'answer_id')
+    filtered_answers = (
+        answers_selected.join(accepted_answers, answers["id"] == accepted_answers["postid"])
+            .select("owneruserid","votes_creationdate")
+    )
 
-    join_user_answers_votes = join_user_answers.join(
-                votes_selected,
-                join_user_answers['answer_id'] == votes_selected['postid'],
-                'inner'
-            )
-
-    join_user_answers_votes = join_user_answers_votes.select('id', 'creationdate', 'reputation', 'votes_creationdate', 'votetypeid')
-
-    join_user_answers_votes_votesTypes = join_user_answers_votes.join(
-                votesTypes_selected,
-                join_user_answers_votes['votetypeid'] == votesTypes_selected['votesTypes_id'],
-                'inner'
-            )
-
-    join_user_answers_votes_votesTypes = join_user_answers_votes_votesTypes.select('id', 'creationdate', 'reputation', 'votes_creationdate')
+    u = (
+        users_selected.join(filtered_answers, users_selected["id"] == filtered_answers["owneruserid"])
+            .select(users_selected["id"], users_selected["creationdate"], users_selected["reputation"], filtered_answers["votes_creationdate"])
+    )
 
     year_range.write.parquet(f'{Q2_PATH}year_range')
     max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
-
-    join_user_answers_votes_votesTypes.write.parquet(f'{Q2_PATH}join_user_answers_votes_votesTypes')
-    #buckets = year_range.join(max_reputation_per_year, year_range.year == max_reputation_per_year.year, "left") \
-    #                    .select(year_range.year, expr("sequence(0, IFNULL(max_rep, 0), 5000) as reputation_range"))
-    #buckets.write.parquet(f'{Q2_PATH}buckets')
+    u.write.parquet(f'{Q2_PATH}u')
 
 
 
