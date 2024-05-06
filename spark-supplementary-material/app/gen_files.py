@@ -171,6 +171,16 @@ def q2():
     max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
     u.write.parquet(f'{Q2_PATH}u')
 
+    # versão com ord
+
+    u_ord = u.orderBy('votes_creationdate')
+    u_ord.write.parquet(f'{Q2_PATH}u_ord')
+
+    # versão com ord e part
+
+    u_ord_part = u_ord.repartitionByRange(col('votes_creationdate'))
+    u_ord_part.write.parquet(f'{Q2_PATH}u_ord_part')
+
 
 
 #* Q3
