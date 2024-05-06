@@ -366,7 +366,6 @@ def q3(tags: DataFrame, questionstags: DataFrame, answers: DataFrame, inferiorLi
     questionstags.createOrReplaceTempView("questionstags")
     tags.createOrReplaceTempView("tags")
     answers.createOrReplaceTempView("answers")
-
     result = spark.sql(f"""
         SELECT tagname, round(avg(total), 3) AS avg_total, count(*) AS count_total
         FROM (
@@ -385,9 +384,7 @@ def q3(tags: DataFrame, questionstags: DataFrame, answers: DataFrame, inferiorLi
         GROUP BY tagname
         ORDER BY avg_total DESC, count_total DESC, tagname
     """)
-
-    result.show()
-
+    # result.show()
     return result.collect()
 
 @timeit
@@ -401,8 +398,11 @@ def w3_base():
     tags = spark.read.parquet(f'{Q3_PATH}tags_parquet') # tabela estática
     questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
     answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
-
-    q3(tags, questionsTags, answers, 10)
+    reps=3
+    for _ in range(reps):
+        q3(tags, questionsTags, answers, 10)
+        q3(tags, questionsTags, answers, 30)
+        q3(tags, questionsTags, answers, 50)
 
 
 def w3_mv():
