@@ -28,11 +28,15 @@ def timeit(f):
         t = time.time()
         result = f(*args, **kw)
         measured_time = round(time.time() - t, 3)
-        if times.get(f.__name__):
-            times[f.__name__].append(measured_time)
+        key = f"{f.__name__}_{args[-1]}"
+        # if "q3" in f.__name__:
+        #     key = f"{f.__name__}_{args[-2]}_{args[-1]}"
+        if times.get(key, None) is not None:
+            times[key].append(measured_time)
         else:
-            times[f.__name__] = [measured_time]
-        print(f'{f.__name__}: {measured_time}s')
+            # times[key] = [measured_time]
+            times[key] = [] #? para caso queira ignorar a primeira medição
+        print(f'{key}: {measured_time}s')
         return result
     return wrap
 
@@ -50,6 +54,7 @@ def write_result(res, filename):
             f.write(str(row) + "\n")
 
 # Queries analíticas
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 1 ********************************
 
 @timeit
@@ -147,6 +152,85 @@ def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: Stri
     
     return result_df.collect()
 
+
+
+#******************************** WORKLOAD 1 ********************************
+# Q1
+def w1():
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+    questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_ordered")
+    answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_ordered")
+    comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_ordered")
+    
+    res = q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+
+    # write_result(res, "w1.csv")
+
+def w1_year():
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+    questions = spark.read.parquet(f"{Q1_PATH}questions_parquet_part_year")
+    answers = spark.read.parquet(f"{Q1_PATH}answers_parquet_part_year")
+    comments = spark.read.parquet(f"{Q1_PATH}comments_parquet_part_year")
+
+    res=q1_year(users, questions, answers, comments, '6 months')
+    q1_year(users, questions, answers, comments, '6 months')
+    q1_year(users, questions, answers, comments, '6 months')
+    q1_year(users, questions, answers, comments, '6 months')
+    q1_year(users, questions, answers, comments, '6 months')
+
+    # write_result(res, "w1-year.csv")
+
+
+def w1_int_mv():
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+    interactions = spark.read.parquet(f"{Q1_PATH}interactions_ordered_parquet")
+    
+    res=q1_interactions_mv(users, interactions, '6 months')
+    q1_interactions_mv(users, interactions, '6 months')
+    q1_interactions_mv(users, interactions, '6 months')
+    q1_interactions_mv(users, interactions, '6 months')
+    q1_interactions_mv(users, interactions, '6 months')
+
+    # write_result(res, "w1-int-mv.csv")
+
+
+def w1_range():
+    """Using RepartitionByRange('creationdate') files"""
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+    questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_reprange")
+    answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_reprange")
+    comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_reprange")
+    
+    res=q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+
+    # write_result(res, "w1-range.csv")
+
+def w1_zip():
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname_zip")
+    questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_zip")
+    answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_zip")
+    comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_zip")
+    
+    res=q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+    q1(users, questions, answers, comments, '6 months')
+
+    # write_result(res, "w1-zip.csv")
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 2 ********************************
 
 def is_leap_year(year):
@@ -222,252 +306,183 @@ def q2(u: DataFrame, year_range: DataFrame,  max_reputation_per_year: DataFrame,
 
     return sorted_result_df.collect()
 
+
+#******************************** WORKLOAD 2 ********************************
+
+# Q2
+def w2():
+
+    # Reads
+    year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+    max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+    u = spark.read.parquet(f"{Q2_PATH}u")
+
+    res=q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+
+    #write_result(res, "w2.csv")
+
+def w2_ord():
+
+    # Reads
+    year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+    max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+    u = spark.read.parquet(f"{Q2_PATH}u_ord")
+
+    res=q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+
+    #write_result(res, "w2.csv")
+
+def w2_ord_part():
+
+    # Reads
+    year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+    max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+    u = spark.read.parquet(f"{Q2_PATH}u_ord_part")
+
+    res=q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+    q2(u, year_range, max_reputation_per_year)
+
+    #write_result(res, "w2.csv")
+
+
+
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 3 ********************************
 
 @timeit
 def q3(tags: DataFrame, questionstags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
-    # Subquery 1
-    subquery1 = questionstags.groupBy("tagid").agg(count("*").alias("total")) \
-        .filter(col("total") > inferiorLimit) \
-        .select("tagid")
+    questionstags.createOrReplaceTempView("questionstags")
+    tags.createOrReplaceTempView("tags")
+    answers.createOrReplaceTempView("answers")
 
-    # Subquery 2
-    subquery2 = tags.join(questionstags, tags["id"] == questionstags["tagid"]) \
-        .join(answers, answers["parentid"] == questionstags["questionid"], "left") \
-        .groupBy("tagname", "questionid") \
-        .agg(count("*").alias("total")) \
-        .join(subquery1, subquery1["tagid"] == questionstags["tagid"], "inner") \
-        .select("tagname", "total")
+    result = spark.sql(f"""
+        SELECT tagname, round(avg(total), 3) AS avg_total, count(*) AS count_total
+        FROM (
+            SELECT t.tagname, qt.questionid, count(*) AS total
+            FROM tags t
+            JOIN questionstags qt ON qt.tagid = t.id
+            LEFT JOIN answers a ON a.parentid = qt.questionid
+            WHERE t.id IN (
+                SELECT tagid
+                FROM questionstags
+                GROUP BY tagid
+                HAVING count(*) > {inferiorLimit}
+            )
+            GROUP BY t.tagname, qt.questionid
+        ) AS subquery
+        GROUP BY tagname
+        ORDER BY avg_total DESC, count_total DESC, tagname
+    """)
 
-    # Main query
-    result = subquery2.groupBy("tagname") \
-        .agg(spark_round(avg("total"), 3).alias("avg_total"), count("*").alias("count")) \
-        .orderBy(col("avg_total").desc(), col("count").desc(), "tagname")
-
-    # Show the result
     result.show()
 
-    # return result.collect()
+    return result.collect()
 
 @timeit
 def q3_mv(mat_view: DataFrame, inferiorLimit: IntegerType = 10):
     result = mat_view.filter(col("count") > inferiorLimit)
-    # result.show()
     return result.collect()
 
+#******************************** WORKLOAD 3 ********************************
+def w3_base():
+    # Reads
+    tags = spark.read.parquet(f'{Q3_PATH}tags_parquet') # tabela estática
+    questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
+    answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
 
+    q3(tags, questionsTags, answers, 10)
+
+
+def w3_mv():
+    mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
+    reps=5
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 10)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 30)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 50)
+    
+
+def w3_mv_ord():
+    mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
+    reps=5
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 10)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 30)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 50)
+
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 4 ********************************
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
-    result = badges.groupBy(window(col("date"), "1 minute")) \
+    result = badges.groupBy(window(col("date"), bucketWindow)) \
           .agg(count("*").alias("count")) \
           .orderBy("window")
     
     return result.collect()
 
 
-
-def main():
-    spark = SparkSession.builder \
-            .master("spark://spark:7077") \
-            .config("spark.eventLog.enabled", "true") \
-            .config("spark.eventLog.dir", "/tmp/spark-events") \
-            .config("spark.sql.adaptive.enabled", "true") \
-            .config("spark.executor.instances", 3) \
-            .config("spark.driver.memory", "8g") \
-            .getOrCreate()
-            # .config("spark.executor.cores", "2") \
-            # .config("spark.executor.memory", "1g") \
-
-
-#******************************** WORKLOAD 1 ********************************
-    # Q1
-    def w1():
-        # Reads
-        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
-        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_ordered")
-        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_ordered")
-        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_ordered")
-        
-        res = q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-
-        # write_result(res, "w1.csv")
-
-    def w1_year():
-        # Reads
-        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
-        questions = spark.read.parquet(f"{Q1_PATH}questions_parquet_part_year")
-        answers = spark.read.parquet(f"{Q1_PATH}answers_parquet_part_year")
-        comments = spark.read.parquet(f"{Q1_PATH}comments_parquet_part_year")
-
-        res=q1_year(users, questions, answers, comments, '6 months')
-        q1_year(users, questions, answers, comments, '6 months')
-        q1_year(users, questions, answers, comments, '6 months')
-        q1_year(users, questions, answers, comments, '6 months')
-        q1_year(users, questions, answers, comments, '6 months')
-
-        # write_result(res, "w1-year.csv")
-
-
-    def w1_int_mv():
-        # Reads
-        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
-        interactions = spark.read.parquet(f"{Q1_PATH}interactions_ordered_parquet")
-        
-        res=q1_interactions_mv(users, interactions, '6 months')
-        q1_interactions_mv(users, interactions, '6 months')
-        q1_interactions_mv(users, interactions, '6 months')
-        q1_interactions_mv(users, interactions, '6 months')
-        q1_interactions_mv(users, interactions, '6 months')
-
-        # write_result(res, "w1-int-mv.csv")
-
-
-    def w1_range():
-        """Using RepartitionByRange('creationdate') files"""
-        # Reads
-        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
-        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_reprange")
-        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_reprange")
-        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_reprange")
-        
-        res=q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-
-        # write_result(res, "w1-range.csv")
-
-    def w1_zip():
-        # Reads
-        users = spark.read.parquet(f"{Q1_PATH}users_id_displayname_zip")
-        questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_zip")
-        answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_zip")
-        comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_zip")
-        
-        res=q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-        q1(users, questions, answers, comments, '6 months')
-
-        # write_result(res, "w1-zip.csv")
-
-#******************************** WORKLOAD 2 ********************************
-
-    # Q2
-    def w2():
-
-        # Reads
-        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
-        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
-        u = spark.read.parquet(f"{Q2_PATH}u")
-
-        res=q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-
-        #write_result(res, "w2.csv")
-
-    def w2_ord():
-
-        # Reads
-        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
-        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
-        u = spark.read.parquet(f"{Q2_PATH}u_ord")
-
-        res=q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-
-        #write_result(res, "w2.csv")
-
-    def w2_ord_part():
-
-        # Reads
-        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
-        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
-        u = spark.read.parquet(f"{Q2_PATH}u_ord_part")
-
-        res=q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-        q2(u, year_range, max_reputation_per_year)
-
-        #write_result(res, "w2.csv")
-
-#******************************** WORKLOAD 3 ********************************
-
-    # Q3
-    def w3_base():
-        # Reads
-        tags = spark.read.parquet(f'{Q3_PATH}tags_parquet') # tabela estática
-        questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
-        answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
-
-        q3(tags, questionsTags, answers, 10)
-
-    
-    def w3_mv():
-        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
-        # mat_view_q3.show()
-
-        for _ in range(10):
-            q3_mv(mat_view_q3, 10)
-            q3_mv(mat_view_q3, 30)
-            q3_mv(mat_view_q3, 50)
-
-    def w3_mv_ord():
-        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
-        # mat_view_q3.show()
-
-        for _ in range(10):
-            q3_mv(mat_view_q3, 10)
-            q3_mv(mat_view_q3, 30)
-            q3_mv(mat_view_q3, 50)
-
 #******************************** WORKLOAD 4 ********************************
-
-    # Q4
-    def w4():
-        mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
-        # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-        q4(mv_badges, "1 minute")
-        q4(mv_badges, "1 minute")
-        q4(mv_badges, "1 minute")
-        q4(mv_badges, "1 minute")
-    
-
-
-    if len(sys.argv) < 2:
-        print("Running all queries...")
-        w1()
-        w2()
-        w3_mv()
-        w4()
-    elif sys.argv[1] == "t":
-        pass
-
-    else:
-        locals()[sys.argv[1]]()
-    
-    # Calculating average times
-    for func in times:
-        avg_time = sum(times[func]) / len(times[func])
-        avg_time = round(avg_time, 3)
-        print(f'Avg of {func}: {avg_time} seconds')
+def w4():
+    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+    # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
+    q4(mv_badges, "1 minute")
+    q4(mv_badges, "1 minute")
+    q4(mv_badges, "1 minute")
+    q4(mv_badges, "1 minute")
 
 
 
-if __name__ == '__main__':
-    main()
+#?############################ SPARK SESSION ####################################
 
-    
+
+spark = SparkSession.builder \
+        .master("spark://spark:7077") \
+        .config("spark.eventLog.enabled", "true") \
+        .config("spark.eventLog.dir", "/tmp/spark-events") \
+        .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.executor.instances", 3) \
+        .config("spark.driver.memory", "8g") \
+        .getOrCreate()
+        # .config("spark.executor.cores", "2") \
+        # .config("spark.executor.memory", "1g") \
+
+
+
+if len(sys.argv) < 2:
+    print("Running all queries...")
+    w1()
+    w2()
+    w3_mv()
+    w4()
+elif sys.argv[1] == "t":
+    pass
+
+else:
+    locals()[sys.argv[1]]()
+
+# Calculating average times
+for func in times:
+    if len(times[func]) == 0:
+        continue
+    avg_time = sum(times[func]) / len(times[func])
+    avg_time = round(avg_time, 3)
+    print(f'Avg of {func}: {avg_time} seconds')
+
+

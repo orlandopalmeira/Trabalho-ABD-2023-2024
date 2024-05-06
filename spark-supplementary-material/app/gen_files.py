@@ -45,7 +45,8 @@ votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferS
 
 
 
-#* Q1
+#******************************** QUERY 1 ********************************
+
 Q1_PATH = f"{path_to_data}Q1/"
 
 def q1_users():
@@ -128,8 +129,8 @@ def q1_gen_files():
     q1_zip()
 
 
+#******************************** QUERY 2 ********************************
 
-# Q2
 Q2_PATH = f"{path_to_data}Q2/"
 
 def q2():
@@ -183,7 +184,9 @@ def q2():
 
 
 
-#* Q3
+
+#******************************** QUERY 3 ********************************
+
 Q3_PATH = f"{path_to_data}Q3/"
 def q3_create_files():
     tags.write.parquet(f'{Q3_PATH}tags_parquet')
@@ -213,7 +216,7 @@ def q3_create_mv():
         GROUP BY ft.tagname, ft.tag_count
     """)
 
-    result.write.parquet(f"{Q3_PATH}mv_parquet")
+    result.write.mode("overwrite").parquet(f"{Q3_PATH}mv_parquet")
 
 def q3_create_mv_ord():
     questionsTags.createOrReplaceTempView("questionstags")
@@ -236,9 +239,9 @@ def q3_create_mv_ord():
         FROM TagQuestionCounts tqc
         JOIN FilteredTags ft ON ft.tagid = tqc.tagid
         GROUP BY ft.tagname, ft.tag_count
-    """).orderBy("count")
+    """).sort("count")
 
-    result.write.parquet(f"{Q3_PATH}mv_parquet_ord")
+    result.write.mode("overwrite").parquet(f"{Q3_PATH}mv_parquet_ord")
 
 def q3():
     q3_create_files()
@@ -246,7 +249,7 @@ def q3():
     q3_create_mv_ord()
 
 
-#* Q4
+#******************************** QUERY 4 ********************************
 Q4_PATH = f"{path_to_data}Q4/"
 
 def q4_create_badges_mv():
