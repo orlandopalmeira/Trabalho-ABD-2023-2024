@@ -386,6 +386,36 @@ def main():
 
         #write_result(res, "w2.csv")
 
+    def w2_ord():
+
+        # Reads
+        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+        u = spark.read.parquet(f"{Q2_PATH}u_ord")
+
+        res=q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+
+        #write_result(res, "w2.csv")
+
+    def w2_ord_part():
+
+        # Reads
+        year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+        max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+        u = spark.read.parquet(f"{Q2_PATH}u_ord_part")
+
+        res=q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+        q2(u, year_range, max_reputation_per_year)
+
+        #write_result(res, "w2.csv")
+
     # Q3
     def w3():
         # Reads
