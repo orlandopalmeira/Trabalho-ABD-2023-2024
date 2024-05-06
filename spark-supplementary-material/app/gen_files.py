@@ -212,8 +212,38 @@ def q3_create_mv():
         JOIN FilteredTags ft ON ft.tagid = tqc.tagid
         GROUP BY ft.tagname, ft.tag_count
     """)
-    result.write.parquet(f"{Q3_PATH}mv_q3.parquet")
 
+    result.write.parquet(f"{Q3_PATH}mv_parquet")
+
+def q3_create_mv_ord():
+    questionsTags.createOrReplaceTempView("questionstags")
+    answers.createOrReplaceTempView("answers")
+    tags.createOrReplaceTempView("tags")
+    spark.sql("""
+        SELECT qt.tagid, qt.questionid, COUNT(*) AS total
+        FROM questionstags qt
+        LEFT JOIN answers a ON a.parentid = qt.questionid
+        GROUP BY qt.tagid, qt.questionid
+    """).createOrReplaceTempView("TagQuestionCounts")
+    spark.sql("""
+        SELECT tagid, tagname, count(*) as tag_count
+        FROM TagQuestionCounts tqc
+        LEFT JOIN tags t ON t.id = tqc.tagid
+        GROUP BY tagid, tagname
+    """).createOrReplaceTempView("FilteredTags")
+    result = spark.sql("""
+        SELECT ft.tagname, ROUND(AVG(tqc.total), 3), ft.tag_count as count
+        FROM TagQuestionCounts tqc
+        JOIN FilteredTags ft ON ft.tagid = tqc.tagid
+        GROUP BY ft.tagname, ft.tag_count
+    """).orderBy("count")
+
+    result.write.parquet(f"{Q3_PATH}mv_parquet_ord")
+
+def q3():
+    q3_create_files()
+    q3_create_mv()
+    q3_create_mv_ord()
 
 
 #* Q4

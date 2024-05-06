@@ -4,10 +4,14 @@ from pyspark.sql.functions import round as spark_round
 from pyspark.sql.functions import col, current_timestamp, expr, lit, coalesce, year, count, broadcast, avg, asc, desc, window, greatest, sequence, explode, date_sub, current_timestamp, floor
 # from pyspark.sql.window import Window
 from pyspark.sql.types import StringType, IntegerType
-import time
+
 from functools import wraps
-import sys
-import re
+import time, sys, re
+
+# from q1 import *
+# from q2 import *
+# from q3 import *
+# from q4 import *
 
 data_to_path = "/app/stack/"
 Q1_PATH = f"{data_to_path}Q1/"
@@ -46,6 +50,7 @@ def write_result(res, filename):
             f.write(str(row) + "\n")
 
 # Queries analíticas
+#******************************** QUERY 1 ********************************
 
 @timeit
 def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: DataFrame, interval: StringType = "6 months") -> List[Row]:
@@ -142,6 +147,8 @@ def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: Stri
     
     return result_df.collect()
 
+#******************************** QUERY 2 ********************************
+
 def is_leap_year(year):
     """
     Verifica se o ano é bissexto.
@@ -215,63 +222,41 @@ def q2(u: DataFrame, year_range: DataFrame,  max_reputation_per_year: DataFrame,
 
     return sorted_result_df.collect()
 
+#******************************** QUERY 3 ********************************
+
 @timeit
-def q3(tags: DataFrame, questionsTags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
+def q3(tags: DataFrame, questionstags: DataFrame, answers: DataFrame, inferiorLimit: IntegerType = 10):
+    # Subquery 1
+    subquery1 = questionstags.groupBy("tagid").agg(count("*").alias("total")) \
+        .filter(col("total") > inferiorLimit) \
+        .select("tagid")
 
-# CREATE MATERIALIZED VIEW TagQuestionCounts AS
-# SELECT qt.tagid, qt.questionid, COUNT(*) AS total
-# FROM questionstags qt
-# LEFT JOIN answers a ON a.parentid = qt.questionid
-# GROUP BY qt.tagid, qt.questionid
-# 
-# WITH FilteredTags AS (
-#     SELECT tagid
-#     FROM TagQuestionCounts
-#     GROUP BY tagid
-#     HAVING COUNT(*) > 10
-# )
-# 
-# SELECT t.tagname, ROUND(AVG(tqc.total), 3) AS avg_total, COUNT(*) AS tag_count
-# FROM TagQuestionCounts tqc
-# JOIN FilteredTags ft ON ft.tagid = tqc.tagid
-# LEFT JOIN tags t ON t.id = tqc.tagid
-# GROUP BY t.tagname
-# ORDER BY avg_total DESC, tag_count DESC, t.tagname;
+    # Subquery 2
+    subquery2 = tags.join(questionstags, tags["id"] == questionstags["tagid"]) \
+        .join(answers, answers["parentid"] == questionstags["questionid"], "left") \
+        .groupBy("tagname", "questionid") \
+        .agg(count("*").alias("total")) \
+        .join(subquery1, subquery1["tagid"] == questionstags["tagid"], "inner") \
+        .select("tagname", "total")
 
-    tag_question_counts = questionsTags.alias("qt") \
-                             .join(answers.alias("a"), questionsTags["questionid"] == answers["parentid"], "left") \
-                             .groupBy("qt.tagid", "qt.questionid") \
-                             .agg(count("*").alias("total"))
+    # Main query
+    result = subquery2.groupBy("tagname") \
+        .agg(spark_round(avg("total"), 3).alias("avg_total"), count("*").alias("count")) \
+        .orderBy(col("avg_total").desc(), col("count").desc(), "tagname")
 
-    tag_question_counts.write.mode("overwrite").parquet("stack/tag_question_counts.parquet")
+    # Show the result
+    result.show()
 
-    # Read the materialized view from the file
-    # tag_question_counts = spark.read.parquet("tag_question_counts.parquet")
-    
-    # Create the FilteredTags view
-    filtered_tags = tag_question_counts.groupBy("tagid").agg(count("*").alias("count")) \
-                                       .filter("count > 10") \
-                                       .select("tagid")
-    
-    # Perform the final aggregation
-    result_df = tag_question_counts.alias("tqc") \
-                                   .join(filtered_tags.alias("ft"), "tagid", "inner") \
-                                   .join(tags.alias("t"), tag_question_counts["tagid"] == tags["id"], "left") \
-                                   .groupBy("t.tagname") \
-                                   .agg(spark_round(avg("tqc.total"), 3).alias("avg_total"), count("*").alias("tag_count")) \
-                                   .orderBy("avg_total", "tag_count", "t.tagname").sort(desc("avg_total"), desc("tag_count"), asc("t.tagname"))
-
-    # result_df.write.csv("stack/res-q3.csv")
-
-    return result_df.collect()
+    # return result.collect()
 
 @timeit
 def q3_mv(mat_view: DataFrame, inferiorLimit: IntegerType = 10):
-    # q3 com vista materializada
     result = mat_view.filter(col("count") > inferiorLimit)
-    # result.write.csv("stack/res-q3-MV.csv")
+    # result.show()
     return result.collect()
 
+
+#******************************** QUERY 4 ********************************
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
     result = badges.groupBy(window(col("date"), "1 minute")) \
@@ -279,6 +264,7 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
           .orderBy("window")
     
     return result.collect()
+
 
 
 def main():
@@ -294,7 +280,7 @@ def main():
             # .config("spark.executor.memory", "1g") \
 
 
-
+#******************************** WORKLOAD 1 ********************************
     # Q1
     def w1():
         # Reads
@@ -370,6 +356,8 @@ def main():
 
         # write_result(res, "w1-zip.csv")
 
+#******************************** WORKLOAD 2 ********************************
+
     # Q2
     def w2():
 
@@ -416,22 +404,37 @@ def main():
 
         #write_result(res, "w2.csv")
 
+#******************************** WORKLOAD 3 ********************************
+
     # Q3
-    def w3():
+    def w3_base():
         # Reads
         tags = spark.read.parquet(f'{Q3_PATH}tags_parquet') # tabela estática
         questionsTags = spark.read.parquet(f'{Q3_PATH}questionsTags_parquet')
         answers = spark.read.parquet(f'{Q3_PATH}answers_parquet')
 
-        for i in range(1):
-            q3(tags, questionsTags, answers, 10)
+        q3(tags, questionsTags, answers, 10)
 
     
     def w3_mv():
-        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_q3.parquet")
+        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
+        # mat_view_q3.show()
 
-        for i in range(1):
+        for _ in range(10):
             q3_mv(mat_view_q3, 10)
+            q3_mv(mat_view_q3, 30)
+            q3_mv(mat_view_q3, 50)
+
+    def w3_mv_ord():
+        mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
+        # mat_view_q3.show()
+
+        for _ in range(10):
+            q3_mv(mat_view_q3, 10)
+            q3_mv(mat_view_q3, 30)
+            q3_mv(mat_view_q3, 50)
+
+#******************************** WORKLOAD 4 ********************************
 
     # Q4
     def w4():
@@ -448,7 +451,7 @@ def main():
         print("Running all queries...")
         w1()
         w2()
-        w3()
+        w3_mv()
         w4()
     elif sys.argv[1] == "t":
         pass

@@ -1,6 +1,8 @@
 stackBenck/db/data
 spark-supplementary-material/app/stack
 
+*.pyc
+
 # Compiled class file
 *.class
 
