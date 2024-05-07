@@ -36,20 +36,30 @@ DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
 -- Q1
 
 -- CREATE INDEX idx_comments_creationdate ON comments (creationdate);
--- CREATE INDEX idx_questions_creationdate ON questions (creationdate);
+-- CREATE INDEX idx_questions_creationdate ON questions (creationdate); -- repetido
 -- CREATE INDEX idx_answers_creationdate ON answers (creationdate);
+
+-- DROP INDEX idx_comments_creationdate;
+-- DROP INDEX idx_questions_creationdate;
+-- DROP INDEX idx_answers_creationdate;
 
 -- Q2
 
 -- CREATE INDEX idx_votes_creationdate ON votes (creationdate);
 -- CREATE INDEX idx_users_creationdate ON users (creationdate);
 
+-- DROP INDEX idx_votes_creationdate;
+-- DROP INDEX idx_users_creationdate;
+
 
 -- Q3
--- ???
--- CREATE INDEX idx_votes_postid_creationdate ON votes (postid, creationdate);
--- CREATE INDEX idx_questionstags_grouping ON questionstags (tagname, questionid);
 -- CREATE INDEX idx_answers_owneruserid ON answers (owneruserid);
+-- CREATE MATERIALIZED VIEW mv_tags AS
+-- SELECT id, tagname
+-- FROM tags;
+
+-- DROP MATERIALIZED VIEW IF EXISTS mv_tags CASCADE;
+-- DROP INDEX idx_answers_owneruserid;
 
 
 -- Q4
@@ -68,4 +78,23 @@ DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
 --         'Tumbleweed'
 --     )
 --     AND class in (1, 2, 3)
---     AND userid <> -1
+--     AND userid <> -1;
+
+
+-- CREATE OR REPLACE FUNCTION refresh_badges_mat_view()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     REFRESH MATERIALIZED VIEW badges_mat_view;
+--     RETURN NULL;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+-- CREATE TRIGGER trigger_refresh_badges_mat_view
+-- AFTER INSERT OR DELETE ON badges
+-- FOR EACH STATEMENT
+-- EXECUTE FUNCTION refresh_badges_mat_view();
+
+-- DROP TRIGGER trigger_refresh_badges_mat_view ON badges;
+-- DROP FUNCTION refresh_badges_mat_view();
+-- DROP MATERIALIZED VIEW IF EXISTS badges_mat_view CASCADE;

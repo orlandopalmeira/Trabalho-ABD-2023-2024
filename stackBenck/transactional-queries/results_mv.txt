@@ -1,0 +1,89 @@
+///// COM NADA
+
+java -jar target/transactional-1.0-SNAPSHOT.jar -d jdbc:postgresql://localhost:5432/stack -U postgres -P postgres -W 15 -R 180 -c 16
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 5.606494895196507
+NewAnswer = 7.071588820754717
+Vote = 4.049176240773287
+QuestionInfo = 4072.800797550633
+PostPoints = 5487.353513655462
+UserProfile = 6.538970529691212
+Search = 1471.164782904762
+LatestByTag = 2347.20053630531
+
+Overall metrics
+---------------
+throughput (txn/s) = 12.438888888888888
+response time (ms) = 1203.4696813211256
+abort rate (%) = 0.0
+
+
+///// COM TUDO DAS ANALITICAS - melhor do que sem nada mas pior do que os das transacionais
+
+
+java -jar target/transactional-1.0-SNAPSHOT.jar -d jdbc:postgresql://localhost:5432/stack -U postgres -P postgres -W 15 -R 180 -c 16
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 3.8855153976945247
+NewAnswer = 6.328050769230769
+Vote = 4.042559960721868
+QuestionInfo = 3988.083371099808
+PostPoints = 7.235734490322581
+UserProfile = 4.944056421720734
+Search = 1132.9357720454545
+LatestByTag = 1151.4899798035715
+
+Overall metrics
+---------------
+throughput (txn/s) = 19.6
+response time (ms) = 751.4883302457483
+abort rate (%) = 0.0
+
+
+
+//// COM TODOS INDICES DAS TRANSACIONAIS
+
+java -jar target/transactional-1.0-SNAPSHOT.jar -d jdbc:postgresql://localhost:5432/stack -U postgres -P postgres -W 15 -R 180 -c 16
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 4.389865644672657
+NewAnswer = 4.7175011014523145
+Vote = 3.467160152587992
+QuestionInfo = 2.058187619909502
+PostPoints = 0.5771663877891228
+UserProfile = 2.579374311670233
+Search = 15.433974494352645
+LatestByTag = 108.08110821869843
+
+Overall metrics
+---------------
+throughput (txn/s) = 1073.0111111111112
+response time (ms) = 14.246536867682845
+abort rate (%) = 0.0
+
+
+
+////// COM OS INDICES DAS ANALITICAS E TRANSACIONAIS
+
+java -jar target/transactional-1.0-SNAPSHOT.jar -d jdbc:postgresql://localhost:5432/stack -U postgres -P postgres -W 15 -R 180 -c 16
+Started!
+Response time per function (ms)
+-------------------------------
+NewQuestion = 4.5382721045281675
+NewAnswer = 5.010127319676998
+Vote = 3.7901641300948263
+QuestionInfo = 1.9291501396323385
+PostPoints = 2.7026033047855957
+UserProfile = 1.7864964783806443
+Search = 15.265307392373186
+LatestByTag = 127.83548523180178
+
+Overall metrics
+---------------
+throughput (txn/s) = 934.0555555555555
+response time (ms) = 16.3006465161958
+abort rate (%) = 0.0
