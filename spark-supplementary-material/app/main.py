@@ -64,6 +64,13 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     answers_selected = answers
     comments_selected = comments#.select(col("userid").alias("owneruserid"), "creationdate")
 
+    # print(questions.rdd.getNumPartitions())
+    # print(answers.rdd.getNumPartitions())
+    # print(comments.rdd.getNumPartitions())
+    # questions_selected.repartitionByRange(15, "creationdate")
+    # answers_selected.repartitionByRange(15, "creationdate")
+    # comments_selected.repartitionByRange(15, "creationdate")
+
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
 
     interactions = (
@@ -98,6 +105,10 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
     answers_selected = answers.select("owneruserid", "creationdate", "creationyear")
     comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate", "creationyear")
 
+    # print(questions_selected.rdd.getNumPartitions())
+    # print(answers_selected.rdd.getNumPartitions())
+    # print(comments_selected.rdd.getNumPartitions())
+
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
     lower_interval_year = year(lower_interval)
 
@@ -122,7 +133,7 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
         .orderBy(col("total").desc())
         .limit(100)
     )
-    
+    # result_df.show()
     return result_df.collect()
 
 
@@ -163,11 +174,12 @@ def w1():
     answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_ordered")
     comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_ordered")
     
-    res = q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '3 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '6 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '2 year')
 
     # write_result(res, "w1.csv")
 
@@ -178,11 +190,12 @@ def w1_year():
     answers = spark.read.parquet(f"{Q1_PATH}answers_parquet_part_year")
     comments = spark.read.parquet(f"{Q1_PATH}comments_parquet_part_year")
 
-    res=q1_year(users, questions, answers, comments, '6 months')
-    q1_year(users, questions, answers, comments, '6 months')
-    q1_year(users, questions, answers, comments, '6 months')
-    q1_year(users, questions, answers, comments, '6 months')
-    q1_year(users, questions, answers, comments, '6 months')
+    for _ in range(6):
+        q1_year(users, questions, answers, comments, '3 month')
+    for _ in range(6):
+        q1_year(users, questions, answers, comments, '6 months')
+    for _ in range(6):
+        q1_year(users, questions, answers, comments, '2 year')
 
     # write_result(res, "w1-year.csv")
 
@@ -192,11 +205,12 @@ def w1_int_mv():
     users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
     interactions = spark.read.parquet(f"{Q1_PATH}interactions_ordered_parquet")
     
-    res=q1_interactions_mv(users, interactions, '6 months')
-    q1_interactions_mv(users, interactions, '6 months')
-    q1_interactions_mv(users, interactions, '6 months')
-    q1_interactions_mv(users, interactions, '6 months')
-    q1_interactions_mv(users, interactions, '6 months')
+    for _ in range(5):
+        q1_interactions_mv(users, interactions, '1 month')
+    for _ in range(5):
+        q1_interactions_mv(users, interactions, '6 months')
+    for _ in range(5):
+        q1_interactions_mv(users, interactions, '2 year')
 
     # write_result(res, "w1-int-mv.csv")
 
@@ -209,11 +223,13 @@ def w1_range():
     answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_reprange")
     comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_reprange")
     
-    res=q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
+    # args = ["1 month", "3 months", "6 months", "1 year", "2 year"]
+    for _ in range(5):
+        q1(users, questions, answers, comments, '1 month')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '6 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '2 year')
 
     # write_result(res, "w1-range.csv")
 
@@ -224,9 +240,12 @@ def w1_zip():
     answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_zip")
     comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_zip")
     
-    res=q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
-    q1(users, questions, answers, comments, '6 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '1 month')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '6 months')
+    for _ in range(5):
+        q1(users, questions, answers, comments, '2 year')
 
     # write_result(res, "w1-zip.csv")
 
@@ -434,7 +453,8 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
     result = badges.groupBy(window(col("date"), bucketWindow)) \
           .agg(count("*").alias("count")) \
           .orderBy("window")
-    
+        #   .orderBy("count", ascending=False) # debug apenas
+    # result.show()
     return result.collect()
 
 
@@ -442,10 +462,12 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
 def w4():
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
     # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-    q4(mv_badges, "1 minute")
-    q4(mv_badges, "1 minute")
-    q4(mv_badges, "1 minute")
-    q4(mv_badges, "1 minute")
+    for _ in range(5):
+        q4(mv_badges, "1 minute")
+    for _ in range(5):
+        q4(mv_badges, "30 minutes")
+    for _ in range(5):
+        q4(mv_badges, "2 hour")
 
 
 

@@ -64,7 +64,7 @@ def create_q1_table(query_str):
 
 def compare_q1_results(query_1, query_2):
     # Compare the results of the queries
-    args = ["1 month", "3 months", "6 months", "1 year", "2 year"]
+    args = ["3 months", "6 months", "1 year", "2 year"]
     for arg in args:
         print(f"Running query with argument: {arg}")
         # Remove LIMIT 100 from queries

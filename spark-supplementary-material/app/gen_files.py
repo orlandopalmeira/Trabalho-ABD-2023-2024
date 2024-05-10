@@ -100,12 +100,12 @@ def q1_interactions_year_partition():
 
 
 def q1_repartitionByRange():
-    answers_rep = answers.select('owneruserid', 'creationdate').repartitionByRange(col('creationdate'))
-    questions_rep = questions.select('owneruserid', 'creationdate').repartitionByRange(col('creationdate'))
-    comments_rep = comments.select(col('userid').alias('owneruserid'), 'creationdate').repartitionByRange(col('creationdate'))
-    answers_rep.write.parquet(f'{Q1_PATH}answers_creationdate_reprange')
-    questions_rep.write.parquet(f'{Q1_PATH}questions_creationdate_reprange')
-    comments_rep.write.parquet(f'{Q1_PATH}comments_creationdate_reprange')
+    answers_rep = answers.select('owneruserid', 'creationdate').repartitionByRange(15, col('creationdate'))
+    questions_rep = questions.select('owneruserid', 'creationdate').repartitionByRange(15, col('creationdate'))
+    comments_rep = comments.select(col('userid').alias('owneruserid'), 'creationdate').repartitionByRange(15, col('creationdate'))
+    answers_rep.write.mode("overwrite").parquet(f'{Q1_PATH}answers_creationdate_reprange')
+    questions_rep.write.mode("overwrite").parquet(f'{Q1_PATH}questions_creationdate_reprange')
+    comments_rep.write.mode("overwrite").parquet(f'{Q1_PATH}comments_creationdate_reprange')
 
 def q1_zip():
     users_zip = users.select('id', 'displayname').orderBy('id')
