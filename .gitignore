@@ -48,3 +48,5 @@ buildNumber.properties
 
 .idea
 .vscode/
+
+test_*
