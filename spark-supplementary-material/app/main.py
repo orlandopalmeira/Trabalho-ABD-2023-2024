@@ -362,50 +362,56 @@ def w3_base():
 
 def w3_mv():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
-    q3_mv(mat_view_q3, 10)
-    # reps=5
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 10)
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 30)
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 50)
+    # q3_mv(mat_view_q3, 50)
+    reps=5
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 10)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 30)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 50)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 100)
     
 
 def w3_mv_ord():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
-    q3_mv(mat_view_q3, 10)
-    # reps=5
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 10)
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 30)
-    # for _ in range(reps):
-    #     q3_mv(mat_view_q3, 50)
+    # q3_mv(mat_view_q3, 50)
+    reps=5
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 10)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 30)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 50)
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 100)
 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 4 ********************************
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
+    # badges = badges.repartition(col("date"))
     result = badges.groupBy(window(col("date"), bucketWindow)) \
           .agg(count("*").alias("count")) \
           .orderBy("window")
         #   .orderBy("count", ascending=False) # debug apenas
-    # result.show()
+    result.explain(True)
     return result.collect()
 
 
 #******************************** WORKLOAD 4 ********************************
 def w4():
-    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
-    # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-    for _ in range(5):
-        q4(mv_badges, "1 minute")
-    for _ in range(5):
-        q4(mv_badges, "30 minutes")
-    for _ in range(5):
-        q4(mv_badges, "2 hour")
+    # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
+    q4(mv_badges, "1 minute")
+    # for _ in range(5):
+    #     q4(mv_badges, "1 minute")
+    # for _ in range(5):
+    #     q4(mv_badges, "30 minutes")
+    # for _ in range(5):
+    #     q4(mv_badges, "2 hour")
 
 
 
@@ -417,6 +423,7 @@ spark = SparkSession.builder \
         .config("spark.eventLog.enabled", "true") \
         .config("spark.eventLog.dir", "/tmp/spark-events") \
         .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.sql.shuffle.partitions", "400") \
         .config("spark.executor.instances", 3) \
         .config("spark.driver.memory", "8g") \
         .getOrCreate()

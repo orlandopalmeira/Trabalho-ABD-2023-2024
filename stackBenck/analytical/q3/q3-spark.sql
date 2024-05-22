@@ -15,7 +15,6 @@ FilteredTags AS (
     JOIN FilteredTags ft ON ft.tagid = tqc.tagid
     GROUP BY ft.tagname, ft.tag_count
 )
-
 SELECT *
 FROM mv_q3
 WHERE count > 10
