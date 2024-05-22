@@ -50,10 +50,10 @@ votesTypes = spark.read.csv(f"{path_to_data}VotesTypes.csv", header=True, inferS
 Q1_PATH = f"{path_to_data}Q1/"
 
 def q1_users():
-    new_users = users.select("id", "displayname")
-    new_users.write.parquet(f'{Q1_PATH}users_id_displayname')
+    new_users = users.select("id", "displayname").repartition(3)
+    new_users.write.mode("overwrite").parquet(f'{Q1_PATH}users_id_displayname')
 
-def q1_3t_ord():
+def q1_ord():
     answers_ordered = answers.select('owneruserid', 'creationdate').orderBy('CreationDate')
     questions_ordered = questions.select('owneruserid', 'creationdate').orderBy('CreationDate')
     comments_ordered = comments.select(col('userid').alias('owneruserid'), 'creationdate').orderBy('CreationDate')
@@ -62,19 +62,6 @@ def q1_3t_ord():
     questions_ordered.write.parquet(f'{Q1_PATH}questions_creationdate_ordered')
     comments_ordered.write.parquet(f'{Q1_PATH}comments_creationdate_ordered')
 
-# MAT VIEW - interactions_ordered_parquet
-def q1_interactions_ordered_parquet():
-    questions_selected = questions.select("owneruserid", "creationdate")
-    answers_selected = answers.select("owneruserid", "creationdate")
-    comments_selected = comments.select(col("userid").alias("owneruserid"), "creationdate")
-
-    interactions = (
-        questions_selected
-        .union(answers_selected)
-        .union(comments_selected)
-    ).orderBy("creationdate")
-
-    interactions.write.parquet(f'{Q1_PATH}interactions_ordered_parquet')
 
 # Adicionar uma coluna (YEAR) para depois fazer partição por essa coluna mais abrangente e utilizando-a nas queries para permitir partition pruning
 def q1_add_year_partition():
@@ -85,19 +72,6 @@ def q1_add_year_partition():
     new_comments = comments.withColumn('creationyear', year(comments.CreationDate)).select('UserId', 'CreationDate', 'creationyear')
     new_comments.write.parquet(f'{Q1_PATH}comments_parquet_part_year', partitionBy='creationyear')
 
-def q1_interactions_year_partition():
-    questions_selected = questions.select("OwnerUserId", "CreationDate", year("CreationDate").alias("creationyear"))
-    answers_selected = answers.select("OwnerUserId", "CreationDate", year("CreationDate").alias("creationyear"))
-    comments_selected = comments.select(col("UserId").alias("OwnerUserId"), "CreationDate", year("CreationDate").alias("creationyear"))
-
-    interactions = (
-        questions_selected
-        .union(answers_selected)
-        .union(comments_selected)
-    )
-
-    interactions.write.parquet(f'{Q1_PATH}interactions_year_partition', partitionBy='creationyear')
-
 
 def q1_repartitionByRange():
     answers_rep = answers.select('owneruserid', 'creationdate').repartitionByRange(15, col('creationdate'))
@@ -107,26 +81,12 @@ def q1_repartitionByRange():
     questions_rep.write.mode("overwrite").parquet(f'{Q1_PATH}questions_creationdate_reprange')
     comments_rep.write.mode("overwrite").parquet(f'{Q1_PATH}comments_creationdate_reprange')
 
-def q1_zip():
-    users_zip = users.select('id', 'displayname').orderBy('id')
-    answers_zip = answers.select('owneruserid', 'creationdate').orderBy('CreationDate')
-    questions_zip = questions.select('owneruserid', 'creationdate').orderBy('CreationDate')
-    comments_zip = comments.select(col('userid').alias('owneruserid'), 'creationdate').orderBy('CreationDate')
-
-    users_zip.write.parquet(f'{Q1_PATH}users_id_displayname_zip', compression='gzip')
-    answers_zip.write.parquet(f'{Q1_PATH}answers_creationdate_zip', compression='gzip')
-    questions_zip.write.parquet(f'{Q1_PATH}questions_creationdate_zip', compression='gzip')
-    comments_zip.write.parquet(f'{Q1_PATH}comments_creationdate_zip', compression='gzip')
-
 
 def q1_gen_files():
     q1_users()
-    q1_3t_ord()
-    q1_interactions_ordered_parquet()
+    q1_ord()
     q1_add_year_partition()
-    q1_interactions_year_partition()
     q1_repartitionByRange()
-    q1_zip()
 
 
 #******************************** QUERY 2 ********************************
@@ -239,7 +199,7 @@ def q3_create_mv_ord():
         FROM TagQuestionCounts tqc
         JOIN FilteredTags ft ON ft.tagid = tqc.tagid
         GROUP BY ft.tagname, ft.tag_count
-    """).sort("count")
+    """).sort("count").repartition(3)
 
     result.write.mode("overwrite").parquet(f"{Q3_PATH}mv_parquet_ord")
 

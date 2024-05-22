@@ -64,13 +64,6 @@ def q1(users: DataFrame, questions: DataFrame, answers: DataFrame, comments: Dat
     answers_selected = answers
     comments_selected = comments#.select(col("userid").alias("owneruserid"), "creationdate")
 
-    # print(questions.rdd.getNumPartitions())
-    # print(answers.rdd.getNumPartitions())
-    # print(comments.rdd.getNumPartitions())
-    # questions_selected.repartitionByRange(15, "creationdate")
-    # answers_selected.repartitionByRange(15, "creationdate")
-    # comments_selected.repartitionByRange(15, "creationdate")
-
     lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
 
     interactions = (
@@ -116,7 +109,6 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
         questions_selected
         .union(answers_selected)
         .union(comments_selected)
-        # .filter(col("creationdate").between(lower_interval, current_timestamp()))
         .filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
         .groupBy("owneruserid")
         .agg(count("*").alias("interaction_count"))
@@ -136,32 +128,6 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
     # result_df.show()
     return result_df.collect()
 
-
-@timeit
-def q1_interactions_mv(users: DataFrame, interactions: DataFrame, interval: StringType = "6 months"):
-    lower_interval = current_timestamp() - expr(f"INTERVAL {interval}")
-    # lower_interval_year = year(lower_interval)
-
-    interactions_grouped = (
-        # interactions.filter((col("creationyear") >= lower_interval_year) & (col("creationdate").between(lower_interval, current_timestamp()))) #> Versão com a coluna creation_year
-        interactions.filter((col("creationdate").between(lower_interval, current_timestamp())))
-        .groupBy("owneruserid")
-        .agg(count("*").alias("interaction_count"))
-    )
-
-    result_df = (
-        users
-        .join(broadcast(interactions_grouped), users["id"] == interactions["owneruserid"], "left")
-        .select(
-            users["id"],
-            users["displayname"],
-            coalesce(interactions_grouped["interaction_count"], lit(0)).cast(IntegerType()).alias("total")
-        )
-        .orderBy(col("total").desc())
-        .limit(100)
-    )
-    
-    return result_df.collect()
 
 
 
@@ -200,21 +166,6 @@ def w1_year():
     # write_result(res, "w1-year.csv")
 
 
-def w1_int_mv():
-    # Reads
-    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
-    interactions = spark.read.parquet(f"{Q1_PATH}interactions_ordered_parquet")
-    
-    for _ in range(5):
-        q1_interactions_mv(users, interactions, '1 month')
-    for _ in range(5):
-        q1_interactions_mv(users, interactions, '6 months')
-    for _ in range(5):
-        q1_interactions_mv(users, interactions, '2 year')
-
-    # write_result(res, "w1-int-mv.csv")
-
-
 def w1_range():
     """Using RepartitionByRange('creationdate') files"""
     # Reads
@@ -233,21 +184,6 @@ def w1_range():
 
     # write_result(res, "w1-range.csv")
 
-def w1_zip():
-    # Reads
-    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname_zip")
-    questions = spark.read.parquet(f"{Q1_PATH}questions_creationdate_zip")
-    answers = spark.read.parquet(f"{Q1_PATH}answers_creationdate_zip")
-    comments = spark.read.parquet(f"{Q1_PATH}comments_creationdate_zip")
-    
-    for _ in range(5):
-        q1(users, questions, answers, comments, '1 month')
-    for _ in range(5):
-        q1(users, questions, answers, comments, '6 months')
-    for _ in range(5):
-        q1(users, questions, answers, comments, '2 year')
-
-    # write_result(res, "w1-zip.csv")
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 2 ********************************
@@ -426,24 +362,26 @@ def w3_base():
 
 def w3_mv():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
-    reps=5
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 10)
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 30)
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 50)
+    q3_mv(mat_view_q3, 10)
+    # reps=5
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 10)
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 30)
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 50)
     
 
 def w3_mv_ord():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
-    reps=5
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 10)
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 30)
-    for _ in range(reps):
-        q3_mv(mat_view_q3, 50)
+    q3_mv(mat_view_q3, 10)
+    # reps=5
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 10)
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 30)
+    # for _ in range(reps):
+    #     q3_mv(mat_view_q3, 50)
 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
