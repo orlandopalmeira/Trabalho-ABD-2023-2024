@@ -251,37 +251,16 @@ def q4_create_badges_mv_ord():
             'Tumbleweed'
         )
         AND class in (1, 2, 3)
-        AND userid <> -1 """).repartitionByRange("date")
-    
-    mat_view.write.mode("overwrite").parquet(f"{Q4_PATH}badges_mat_view_ord")
-
-def q4_create_badges_mv_ord_9():
-    badges.createOrReplaceTempView("badges")
-
-    mat_view = spark.sql("""
-    SELECT date
-    FROM badges
-    WHERE NOT tagbased
-        AND name NOT IN (
-            'Analytical',
-            'Census',
-            'Documentation Beta',
-            'Documentation Pioneer',
-            'Documentation User',
-            'Reversal',
-            'Tumbleweed'
-        )
-        AND class in (1, 2, 3)
         AND userid <> -1 """).repartitionByRange(9, "date")
     
-    mat_view.write.mode("overwrite").parquet(f"{Q4_PATH}badges_mat_view_ord_9")
+    mat_view.write.mode("overwrite").parquet(f"{Q4_PATH}badges_mat_view_ord")
 
 
 
 def q4():
     q4_create_badges_mv()
-    q4_create_badges_mv_ord_9()
-    
+    q4_create_badges_mv_ord()
+
 
 
 

@@ -401,28 +401,30 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
 #******************************** WORKLOAD 4 ********************************
 def w4():
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-    for _ in range(5):
+    reps = 10
+    for _ in range(reps):
         q4(mv_badges, "1 minute")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "10 minute")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "30 minutes")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "2 hour")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "6 hour")
 
 def w4_ord():
-    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord_9")
-    for _ in range(5):
+    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+    reps = 10
+    for _ in range(reps):
         q4(mv_badges, "1 minute")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "10 minute")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "30 minutes")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "2 hour")
-    for _ in range(5):
+    for _ in range(reps):
         q4(mv_badges, "6 hour")
 
 
