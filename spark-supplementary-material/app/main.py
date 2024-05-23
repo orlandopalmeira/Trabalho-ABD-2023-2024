@@ -392,26 +392,38 @@ def w3_mv_ord():
 #******************************** QUERY 4 ********************************
 @timeit
 def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
-    # badges = badges.repartition(col("date"))
     result = badges.groupBy(window(col("date"), bucketWindow)) \
           .agg(count("*").alias("count")) \
           .orderBy("window")
-        #   .orderBy("count", ascending=False) # debug apenas
-    result.explain(True)
     return result.collect()
 
 
 #******************************** WORKLOAD 4 ********************************
 def w4():
-    # mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-    q4(mv_badges, "1 minute")
-    # for _ in range(5):
-    #     q4(mv_badges, "1 minute")
-    # for _ in range(5):
-    #     q4(mv_badges, "30 minutes")
-    # for _ in range(5):
-    #     q4(mv_badges, "2 hour")
+    for _ in range(5):
+        q4(mv_badges, "1 minute")
+    for _ in range(5):
+        q4(mv_badges, "10 minute")
+    for _ in range(5):
+        q4(mv_badges, "30 minutes")
+    for _ in range(5):
+        q4(mv_badges, "2 hour")
+    for _ in range(5):
+        q4(mv_badges, "6 hour")
+
+def w4_ord():
+    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord_9")
+    for _ in range(5):
+        q4(mv_badges, "1 minute")
+    for _ in range(5):
+        q4(mv_badges, "10 minute")
+    for _ in range(5):
+        q4(mv_badges, "30 minutes")
+    for _ in range(5):
+        q4(mv_badges, "2 hour")
+    for _ in range(5):
+        q4(mv_badges, "6 hour")
 
 
 
@@ -423,7 +435,6 @@ spark = SparkSession.builder \
         .config("spark.eventLog.enabled", "true") \
         .config("spark.eventLog.dir", "/tmp/spark-events") \
         .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.shuffle.partitions", "400") \
         .config("spark.executor.instances", 3) \
         .config("spark.driver.memory", "8g") \
         .getOrCreate()
@@ -434,10 +445,10 @@ spark = SparkSession.builder \
 
 if len(sys.argv) < 2:
     print("Running all queries...")
-    w1()
+    w1_year()
     w2()
     w3_mv()
-    w4()
+    w4_ord()
 elif sys.argv[1] == "t":
     pass
 
