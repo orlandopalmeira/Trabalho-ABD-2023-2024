@@ -29,14 +29,14 @@ def timeit(f):
         result = f(*args, **kw)
         measured_time = round(time.time() - t, 3)
         key = f"{f.__name__}_{args[-1]}"
-        # if "q3" in f.__name__:
-        #     key = f"{f.__name__}_{args[-2]}_{args[-1]}"
+        if "q2" in f.__name__:
+            key = f"{f.__name__}_{args[-2]}_{args[-1]}"
         if times.get(key, None) is not None:
             times[key].append(measured_time)
         else:
             # times[key] = [measured_time]
             times[key] = [] #? para caso queira ignorar a primeira medição
-        # print(f'{key}: {measured_time}s')
+        print(f'{key}: {measured_time}s')
         return result
     return wrap
 
@@ -198,6 +198,16 @@ def w1_range():
 
     # write_result(res, "w1-range.csv")
 
+def w1_final():
+    # Reads
+    users = spark.read.parquet(f"{Q1_PATH}users_id_displayname")
+    questions = spark.read.parquet(f"{Q1_PATH}questions_parquet_part_year")
+    answers = spark.read.parquet(f"{Q1_PATH}answers_parquet_part_year")
+    comments = spark.read.parquet(f"{Q1_PATH}comments_parquet_part_year")
+
+    reps = 6
+    for _ in range(reps):
+        q1_year(users, questions, answers, comments, '6 months')
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #******************************** QUERY 2 ********************************
@@ -279,17 +289,16 @@ def q2(u: DataFrame, year_range: DataFrame,  max_reputation_per_year: DataFrame,
 
 # Q2
 def w2():
-
     # Reads
     year_range = spark.read.parquet(f"{Q2_PATH}year_range")
     max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
     u = spark.read.parquet(f"{Q2_PATH}u")
 
     reps=6
-    for _ in range(reps):
-        q2(u, year_range, max_reputation_per_year, "1 year", 5000)
-    for _ in range(reps):
-        q2(u, year_range, max_reputation_per_year, "3 year", 5000)
+    # for _ in range(reps):
+    #     q2(u, year_range, max_reputation_per_year, "1 year", 5000)
+    # for _ in range(reps):
+    #     q2(u, year_range, max_reputation_per_year, "3 year", 5000)
     for _ in range(reps):
         q2(u, year_range, max_reputation_per_year, "5 year", 5000)
     for _ in range(reps):
@@ -332,6 +341,15 @@ def w2_ord_part():
     for _ in range(reps):
         q2(u, year_range, max_reputation_per_year, "7 year", 5000)
 
+def w2_final():
+    # Reads
+    year_range = spark.read.parquet(f"{Q2_PATH}year_range")
+    max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
+    u = spark.read.parquet(f"{Q2_PATH}u")
+
+    reps=6
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "5 year", 5000)
 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -384,7 +402,7 @@ def w3_base():
 def w3_mv():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
     # q3_mv(mat_view_q3, 50)
-    reps=5
+    reps=6
     for _ in range(reps):
         q3_mv(mat_view_q3, 10)
     for _ in range(reps):
@@ -398,7 +416,7 @@ def w3_mv():
 def w3_mv_ord():
     mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet_ord")
     # q3_mv(mat_view_q3, 50)
-    reps=5
+    reps=6
     for _ in range(reps):
         q3_mv(mat_view_q3, 10)
     for _ in range(reps):
@@ -407,6 +425,13 @@ def w3_mv_ord():
         q3_mv(mat_view_q3, 50)
     for _ in range(reps):
         q3_mv(mat_view_q3, 100)
+
+
+def w3_final():
+    mat_view_q3 = spark.read.parquet(f"{Q3_PATH}mv_parquet")
+    reps=6
+    for _ in range(reps):
+        q3_mv(mat_view_q3, 10)
 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -448,6 +473,11 @@ def w4_ord():
     for _ in range(reps):
         q4(mv_badges, "6 hour")
 
+def w4_final():
+    mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
+    reps = 6
+    for _ in range(reps):
+        q4(mv_badges, "1 minute")
 
 
 #?############################ SPARK SESSION ####################################
@@ -461,18 +491,19 @@ spark = SparkSession.builder \
         .config("spark.driver.memory", "16g") \
         .getOrCreate()
         # spark.conf.set("spark.sql.shuffle.partitions", "16")
+        # .config("spark.executor.instances", 3) \
         # .config("spark.executor.cores", "2") \
         # .config("spark.executor.memory", "1g") \
-        # .config("spark.executor.instances", 3) \
 
 
 
 if len(sys.argv) < 2:
     print("Running all queries...")
-    w1_year()
-    w2()
-    w3_mv_ord()
-    w4_ord()
+    w1_final()
+    w2_final()
+    w3_final()
+    w4_final()
+
 elif sys.argv[1] == "t":
     pass
 
