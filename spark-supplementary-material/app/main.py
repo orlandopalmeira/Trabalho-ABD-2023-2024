@@ -243,9 +243,8 @@ def q2(u: DataFrame, year_range: DataFrame,  max_reputation_per_year: DataFrame,
     buckets = buckets.select(col("yr.year").alias("year"), col("reputation_range"))
 
     u = u.where(col("votes_creationdate") >= date_sub(current_timestamp(), parse_interval_3(interval))).select('id','creationdate','reputation').distinct()
-    u = u.withColumn("year", year(u["creationdate"]))
+    u = u.withColumn("u_year", year(u["creationdate"]))
     u = u.withColumn("reputation_range", floor(u["reputation"] / bucketInterval) * bucketInterval)
-    u = u.withColumnRenamed("year", "u_year")
     u = u.withColumnRenamed("reputation_range", "u_rg")
 
     joined_df = buckets.join(u,
@@ -272,13 +271,16 @@ def w2():
     max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
     u = spark.read.parquet(f"{Q2_PATH}u")
 
-    res=q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
+    reps=5
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "1 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "3 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "5 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "7 year", 5000)
 
-    #write_result(res, "w2.csv")
 
 def w2_ord():
 
@@ -287,11 +289,15 @@ def w2_ord():
     max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
     u = spark.read.parquet(f"{Q2_PATH}u_ord")
 
-    res=q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
+    reps=5
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "1 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "3 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "5 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "7 year", 5000)
 
     #write_result(res, "w2.csv")
 
@@ -302,14 +308,15 @@ def w2_ord_part():
     max_reputation_per_year = spark.read.parquet(f"{Q2_PATH}max_reputation_per_year")
     u = spark.read.parquet(f"{Q2_PATH}u_ord_part")
 
-    res=q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-    q2(u, year_range, max_reputation_per_year)
-
-    #write_result(res, "w2.csv")
-
+    reps=5
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "1 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "3 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "5 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "7 year", 5000)
 
 
 
