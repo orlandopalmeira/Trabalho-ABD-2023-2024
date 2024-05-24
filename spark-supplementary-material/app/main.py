@@ -447,7 +447,7 @@ def q4(badges: DataFrame, bucketWindow: StringType = "1 minute"):
 #******************************** WORKLOAD 4 ********************************
 def w4():
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view")
-    reps = 10
+    reps = 3
     for _ in range(reps):
         q4(mv_badges, "1 minute")
     for _ in range(reps):
@@ -461,7 +461,7 @@ def w4():
 
 def w4_ord():
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
-    reps = 6
+    reps = 3
     for _ in range(reps):
         q4(mv_badges, "1 minute")
     for _ in range(reps):
@@ -475,7 +475,7 @@ def w4_ord():
 
 def w4_final():
     mv_badges = spark.read.parquet(f"{Q4_PATH}badges_mat_view_ord")
-    reps = 6
+    reps = 3
     for _ in range(reps):
         q4(mv_badges, "1 minute")
 
@@ -484,16 +484,18 @@ def w4_final():
 
 
 spark = SparkSession.builder \
-        .master("spark://spark:7077") \
-        .config("spark.eventLog.enabled", "true") \
-        .config("spark.eventLog.dir", "/tmp/spark-events") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.driver.memory", "16g") \
-        .getOrCreate()
-        # spark.conf.set("spark.sql.shuffle.partitions", "16")
-        # .config("spark.executor.instances", 3) \
-        # .config("spark.executor.cores", "2") \
-        # .config("spark.executor.memory", "1g") \
+    .master("spark://spark:7077") \
+    .config("spark.eventLog.enabled", "true") \
+    .config("spark.eventLog.dir", "/tmp/spark-events") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.driver.memory", "8g") \
+    .config("spark.executor.instances", 3) \
+    .getOrCreate()
+    # .config("spark.driver.memory", "16g") \
+    # spark.conf.set("spark.sql.shuffle.partitions", "16")
+
+    # .config("spark.executor.cores", "2") \
+    # .config("spark.executor.memory", "1g") \
 
 
 
@@ -503,10 +505,8 @@ if len(sys.argv) < 2:
     w2_final()
     w3_final()
     w4_final()
-
 elif sys.argv[1] == "t":
     pass
-
 else:
     locals()[sys.argv[1]]()
 
