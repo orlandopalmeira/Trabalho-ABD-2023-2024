@@ -128,19 +128,19 @@ def q2():
             .select(users_selected["id"], users_selected["creationdate"], users_selected["reputation"], filtered_answers["votes_creationdate"])
     )
 
-    year_range.write.parquet(f'{Q2_PATH}year_range')
-    max_reputation_per_year.write.parquet(f'{Q2_PATH}max_reputation_per_year')
-    u.write.parquet(f'{Q2_PATH}u')
+    year_range.write.mode("overwrite").parquet(f'{Q2_PATH}year_range')
+    max_reputation_per_year.write.mode("overwrite").parquet(f'{Q2_PATH}max_reputation_per_year')
+    u.write.mode("overwrite").parquet(f'{Q2_PATH}u')
 
     # versão com ord
 
     u_ord = u.orderBy('votes_creationdate')
-    u_ord.write.parquet(f'{Q2_PATH}u_ord')
+    u_ord.write.mode("overwrite").parquet(f'{Q2_PATH}u_ord')
 
     # versão com ord e part
 
     u_ord_part = u_ord.repartitionByRange(col('votes_creationdate'))
-    u_ord_part.write.parquet(f'{Q2_PATH}u_ord_part')
+    u_ord_part.write.mode("overwrite").parquet(f'{Q2_PATH}u_ord_part')
 
 
 
