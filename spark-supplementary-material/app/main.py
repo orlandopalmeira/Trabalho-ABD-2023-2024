@@ -36,7 +36,7 @@ def timeit(f):
         else:
             # times[key] = [measured_time]
             times[key] = [] #? para caso queira ignorar a primeira medição
-        print(f'{key}: {measured_time}s')
+        # print(f'{key}: {measured_time}s')
         return result
     return wrap
 
@@ -116,7 +116,7 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
 
     result_df = (
         users
-        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
+        .join(interactions, users["id"] == interactions["owneruserid"], "left")
         .select(
             users["id"],
             users["displayname"],
@@ -488,11 +488,11 @@ spark = SparkSession.builder \
     .config("spark.eventLog.enabled", "true") \
     .config("spark.eventLog.dir", "/tmp/spark-events") \
     .config("spark.sql.adaptive.enabled", "true") \
-    .config("spark.driver.memory", "8g") \
     .config("spark.executor.instances", 3) \
+    .config("spark.sql.shuffle.partitions", "8") \
+    .config("spark.driver.memory", "12g") \
     .getOrCreate()
     # .config("spark.driver.memory", "16g") \
-    # spark.conf.set("spark.sql.shuffle.partitions", "16")
 
     # .config("spark.executor.cores", "2") \
     # .config("spark.executor.memory", "1g") \
