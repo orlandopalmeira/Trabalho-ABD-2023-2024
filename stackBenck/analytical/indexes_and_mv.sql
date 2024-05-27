@@ -40,27 +40,20 @@ DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
 -- CREATE INDEX idx_questions_creationdate ON questions (creationdate); -- repetido
 -- CREATE INDEX idx_answers_creationdate ON answers (creationdate);
 
--- DROP INDEX idx_comments_creationdate;
--- DROP INDEX idx_questions_creationdate;
--- DROP INDEX idx_answers_creationdate;
 
 -- Q2
 
 -- CREATE INDEX idx_votes_creationdate ON votes (creationdate);
--- CREATE INDEX idx_users_creationdate ON users (creationdate);
+-- CREATE INDEX idx_users_creationdate_year on users (extract(year from creationdate));
 
--- DROP INDEX idx_votes_creationdate;
--- DROP INDEX idx_users_creationdate;
 
 
 -- Q3
--- CREATE INDEX idx_answers_owneruserid ON answers (owneruserid);
+-- CREATE INDEX idx_answers_parentid ON answers (parentid);
 -- CREATE MATERIALIZED VIEW mv_tags AS
 -- SELECT id, tagname
 -- FROM tags;
 
--- DROP MATERIALIZED VIEW IF EXISTS mv_tags CASCADE;
--- DROP INDEX idx_answers_owneruserid;
 
 
 -- Q4
