@@ -8,7 +8,8 @@ LEFT JOIN
     pg_constraint con ON idx.indexname = con.conname
 WHERE 
     idx.schemaname = 'public' -- Change to your schema if needed
-    AND con.contype IS NULL;
+    AND con.contype IS NULL
+ORDER BY 2;
 
 --* Materialized Views
 SELECT 

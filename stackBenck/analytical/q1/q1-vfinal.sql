@@ -12,6 +12,7 @@ WITH interactions AS (
     WHERE creationdate BETWEEN NOW() - INTERVAL '6 months' AND NOW()
     GROUP BY owneruserid
 )
+
 SELECT
     u.id,
     u.displayname,
