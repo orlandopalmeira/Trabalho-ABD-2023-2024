@@ -116,7 +116,7 @@ def q1_year(users: DataFrame, questions: DataFrame, answers: DataFrame, comments
 
     result_df = (
         users
-        .join(interactions, users["id"] == interactions["owneruserid"], "left")
+        .join(broadcast(interactions), users["id"] == interactions["owneruserid"], "left")
         .select(
             users["id"],
             users["displayname"],
@@ -295,10 +295,10 @@ def w2():
     u = spark.read.parquet(f"{Q2_PATH}u")
 
     reps=6
-    # for _ in range(reps):
-    #     q2(u, year_range, max_reputation_per_year, "1 year", 5000)
-    # for _ in range(reps):
-    #     q2(u, year_range, max_reputation_per_year, "3 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "1 year", 5000)
+    for _ in range(reps):
+        q2(u, year_range, max_reputation_per_year, "3 year", 5000)
     for _ in range(reps):
         q2(u, year_range, max_reputation_per_year, "5 year", 5000)
     for _ in range(reps):
