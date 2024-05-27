@@ -97,8 +97,10 @@ def q2_change_arguments(query_str: str, interval: str, bucketInterval: str) -> s
 
 def create_q2_table(query_str):
     myTable = PrettyTable(["Interval", "Bucket", "Time (s)"])
-    args_interval = ["1 year", "2 year", "3 year", "4 year", "5 year"] # Provisorio
-    args_bucket = ["5000", "10000", "15000", "20000", "25000"] # Provisorio
+    # args_interval = ["1 year", "2 year", "3 year", "4 year", "5 year"]
+    # args_bucket = ["5000", "10000", "15000", "20000", "25000"]
+    args_interval = ["1 year", "5 year", "7 year"]
+    args_bucket = ["5000", "15000", "25000"]
     for arg_i in args_interval:
         for arg_b in args_bucket:
             print(f"Running query with arguments: {arg_i}, {arg_b}")
@@ -110,8 +112,10 @@ def create_q2_table(query_str):
 
 def compare_q2_results(query_1, query_2):
     # Compare the results of the queries
-    args_interval = ["1 year", "2 year", "3 year", "4 year", "5 year"]
-    args_bucket = ["5000", "10000", "15000", "20000", "25000"]
+    # args_interval = ["1 year", "2 year", "3 year", "4 year", "5 year"]
+    # args_bucket = ["5000", "10000", "15000", "20000", "25000"]
+    args_interval = ["1 year", "5 year", "7 year"]
+    args_bucket = ["5000", "15000", "25000"]
     for arg_i in args_interval:
         for arg_b in args_bucket:
             print(f"Running query with arguments: {arg_i}, {arg_b}")

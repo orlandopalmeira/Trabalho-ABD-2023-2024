@@ -30,26 +30,26 @@ SELECT tgname AS trigger_name,
 FROM pg_trigger;
 
 
-DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
+-- DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
 
 
 
 -- Q1
 
--- CREATE INDEX idx_comments_creationdate ON comments (creationdate);
--- CREATE INDEX idx_questions_creationdate ON questions (creationdate); -- repetido
--- CREATE INDEX idx_answers_creationdate ON answers (creationdate);
+CREATE INDEX idx_comments_creationdate ON comments (creationdate);
+CREATE INDEX idx_questions_creationdate ON questions (creationdate); -- repetido
+CREATE INDEX idx_answers_creationdate ON answers (creationdate);
 
 
 -- Q2
 
--- CREATE INDEX idx_votes_creationdate ON votes (creationdate);
--- CREATE INDEX idx_users_creationdate_year on users (extract(year from creationdate));
+CREATE INDEX idx_votes_creationdate ON votes (creationdate);
+CREATE INDEX idx_users_creationdate_year on users (extract(year from creationdate));
 
 
 
 -- Q3
--- CREATE INDEX idx_answers_parentid ON answers (parentid);
+CREATE INDEX idx_answers_parentid ON answers (parentid);
 -- CREATE MATERIALIZED VIEW mv_tags AS
 -- SELECT id, tagname
 -- FROM tags;
@@ -58,21 +58,21 @@ DROP TRIGGER IF EXISTS update_users_years_trigger ON users;
 
 -- Q4
 
--- CREATE MATERIALIZED VIEW badges_mat_view AS
--- SELECT date
--- FROM badges
--- WHERE NOT tagbased
---     AND name NOT IN (
---         'Analytical',
---         'Census',
---         'Documentation Beta',
---         'Documentation Pioneer',
---         'Documentation User',
---         'Reversal',
---         'Tumbleweed'
---     )
---     AND class in (1, 2, 3)
---     AND userid <> -1;
+CREATE MATERIALIZED VIEW badges_mat_view AS
+SELECT date
+FROM badges
+WHERE NOT tagbased
+    AND name NOT IN (
+        'Analytical',
+        'Census',
+        'Documentation Beta',
+        'Documentation Pioneer',
+        'Documentation User',
+        'Reversal',
+        'Tumbleweed'
+    )
+    AND class in (1, 2, 3)
+    AND userid <> -1;
 
 
 -- CREATE OR REPLACE FUNCTION refresh_badges_mat_view()
