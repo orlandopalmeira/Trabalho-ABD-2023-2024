@@ -17,7 +17,7 @@
 
 </div>
 
-### Nota: X/20
+### Nota: 20/20
 
 <h3><i>Keywords</i></h3>
 ABD, Administração de Bases de Dados, administracao de bases de dados, uminho, miei, mei, engenharia informatica
