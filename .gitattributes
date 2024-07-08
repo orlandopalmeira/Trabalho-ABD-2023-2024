@@ -1,0 +1,4 @@
+*.PL linguist-generated
+*.t linguist-generated
+*.pl linguist-generated
+*pgbadger_tools* linguist-generated
