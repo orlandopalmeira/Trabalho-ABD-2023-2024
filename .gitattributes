@@ -1,4 +1,3 @@
 *.PL linguist-detectable=false
 *.t linguist-detectable=false
 *.patplch linguist-detectable=false
-*pgbadger_tools* linguist-detectable=false
