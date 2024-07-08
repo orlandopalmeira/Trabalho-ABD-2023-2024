@@ -1,4 +1,4 @@
-*.PL linguist-generated
-*.t linguist-generated
-*.pl linguist-generated
-*pgbadger_tools* linguist-generated
+*.PL linguist-detectable=false
+*.t linguist-detectable=false
+*.patplch linguist-detectable=false
+*pgbadger_tools* linguist-detectable=false
